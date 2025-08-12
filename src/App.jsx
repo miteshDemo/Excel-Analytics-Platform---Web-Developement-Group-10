@@ -1,21 +1,41 @@
-import React from 'react';
-import './App.css';
-import Register from '../front-end/register';
-import Login from '../front-end/login';
-import Start from '../front-end/start';
-import AdminDashboard from '../front-end/AdminDashboard'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Start from "../front-end/start";
+import Register from "../front-end/register";
+import Login from "../front-end/login";
+import AdminDashboard from "../front-end/AdminDashboard";
+import UserDashboard from "../front-end/UserDashboard";
+import PrivateRoute from "../front-end/ProtectedRoute";
 
 function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Start />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+
+        {/* Protected User Route */}
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute roleRequired="user">
+              <UserDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Protected Admin Route */}
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute roleRequired="admin">
+              <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
 

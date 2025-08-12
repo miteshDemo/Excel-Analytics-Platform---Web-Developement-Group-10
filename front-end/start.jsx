@@ -138,24 +138,39 @@ const StartPage = () => {
             </Typography>
           </Box>
 
-          {/* Reordered Buttons */}
-          <Button sx={{ fontWeight: "bold" }} onClick={() => navigate("/")}>
+          {/* Navigation Buttons */}
+          <Button
+            sx={{ fontWeight: "bold", fontFamily: "unset" }}
+            onClick={() => navigate("/")}
+          >
             Home
           </Button>
-          <Button sx={{ fontWeight: "bold" }} onClick={scrollToFacilities}>
+          <Button
+            sx={{ fontWeight: "bold", fontFamily: "unset" }}
+            onClick={scrollToFacilities}
+          >
             Facilities
           </Button>
-          <Button sx={{ fontWeight: "bold" }} onClick={scrollToContact}>
+          <Button
+            sx={{ fontWeight: "bold", fontFamily: "unset" }}
+            onClick={scrollToContact}
+          >
             Contact
           </Button>
-          <Button sx={{ fontWeight: "bold" }} onClick={scrollToAbout}>
+          <Button
+            sx={{ fontWeight: "bold", fontFamily: "unset" }}
+            onClick={scrollToAbout}
+          >
             About
           </Button>
+          {/* Changed from Login to Get Started */}
           <Button
-            sx={{ fontWeight: "bold" }}
-            onClick={() => navigate("/login")}
+            variant="contained"
+            color="primary"
+            sx={{ fontWeight: "bold", fontFamily: "unset" }}
+            onClick={() => navigate("/register")}
           >
-            Login
+            Get Started
           </Button>
         </Toolbar>
       </AppBar>
@@ -196,7 +211,7 @@ const StartPage = () => {
               objectFit: "contain",
             }}
           />
-          <Typography variant="h3" fontWeight="bold">
+          <Typography variant="h3" fontWeight="bold" fontFamily="unset">
             Welcome to Excel Analytics Platform
           </Typography>
           <Typography variant="body1" maxWidth="sm">
@@ -208,9 +223,9 @@ const StartPage = () => {
             color="primary"
             size="large"
             onClick={handleEnterClick}
-            sx={{ mt: 2, px: 4 }}
+            sx={{ mt: 2, px: 4, fontFamily: "unset" }}
           >
-            Enter the Platform
+            Get Started
           </Button>
         </Stack>
       </Container>
@@ -225,7 +240,7 @@ const StartPage = () => {
           variant="h4"
           fontWeight="bold"
           align="center"
-          sx={{ mb: 4 }}
+          sx={{ mb: 4, fontFamily: "unset" }}
         >
           Platform Facilities
         </Typography>
@@ -269,7 +284,7 @@ const StartPage = () => {
       </Container>
 
       {/* Quick Contact */}
-      <Container ref={contactRef} maxWidth="sm" sx={{ mb: 6, zIndex: 1 }}>
+      <Container ref={contactRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -279,7 +294,12 @@ const StartPage = () => {
             elevation={6}
             sx={{ p: 4, borderRadius: 3, textAlign: "center" }}
           >
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              fontFamily="unset"
+              gutterBottom
+            >
               Quick Contact
             </Typography>
             <Typography variant="body2" sx={{ mb: 3 }}>
@@ -329,7 +349,7 @@ const StartPage = () => {
       </Container>
 
       {/* About Section */}
-      <Container ref={aboutRef} maxWidth="md" sx={{ mb: 6, zIndex: 1 }}>
+      <Container ref={aboutRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}

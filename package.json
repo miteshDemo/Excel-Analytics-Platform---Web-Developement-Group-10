@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "start": "nodemon server.js",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -39,6 +40,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "nodemon": "^3.1.10",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "vite": "^7.0.4"
@@ -47,5 +49,13 @@
   "main": "eslint.config.js",
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miteshDemo/Excel-Analytics-Platform---Web-Developement-Group-10.git"
+  },
+  "bugs": {
+    "url": "https://github.com/miteshDemo/Excel-Analytics-Platform---Web-Developement-Group-10/issues"
+  },
+  "homepage": "https://github.com/miteshDemo/Excel-Analytics-Platform---Web-Developement-Group-10#readme"
 }

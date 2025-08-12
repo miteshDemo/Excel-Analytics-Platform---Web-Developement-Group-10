@@ -6,7 +6,6 @@ import {
   TextField,
   Button,
   Box,
-  Divider,
   useMediaQuery,
   useTheme,
   Link,
@@ -14,8 +13,9 @@ import {
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../back-end/api"; // ✅ Import axios instance
 
+// ✅ Validation schema
 const validationSchema = Yup.object({
   fullName: Yup.string().required("Full Name is required"),
   email: Yup.string().email("Invalid email").required("Email is required"),
@@ -46,34 +46,30 @@ const RegistrationForm = () => {
     validationSchema,
     onSubmit: async (values, { resetForm }) => {
       try {
-        const { confirmPassword, ...userData } = values;
-        const response = await axios.post(
-          "http://localhost:5000/api/register",
-          userData
-        );
+        // ✅ Rename `fullName` to `name` for backend compatibility
+        const { confirmPassword, fullName, ...rest } = values;
+        const userData = { name: fullName, ...rest };
 
-        localStorage.setItem("token", response.data.token);
+        const response = await api.post("/auth/register", userData);
+
+        const { token, role } = response.data || {};
+        if (token) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("role", role || "user");
+        }
 
         alert("Registration Successful!");
         resetForm();
         navigate("/login");
       } catch (error) {
+        console.error(error);
         alert(error.response?.data?.message || "Registration Failed");
       }
     },
   });
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        bgcolor: "skyblue",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        py: 4,
-      }}
-    >
+    <Box sx={{ bgcolor: "skyblue", py: 4 }}>
       <Container maxWidth="xs">
         <Box
           sx={{
@@ -89,7 +85,7 @@ const RegistrationForm = () => {
               fontFamily: "sans-serif",
               fontWeight: "bold",
             }}
-            variant={isSmallScreen ? "h4" : "h4"}
+            variant="h4"
             gutterBottom
             align="center"
             color="primary"
@@ -130,10 +126,6 @@ const RegistrationForm = () => {
                   />
                 </Grid>
               ))}
-
-              <Grid item>
-                <Divider sx={{ my: 1.5 }} />
-              </Grid>
 
               <Grid item>
                 <Button
