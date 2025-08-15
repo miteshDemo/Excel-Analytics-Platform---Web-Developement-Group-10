@@ -1,3 +1,4 @@
+// src/front-end/register.jsx
 import React from "react";
 import {
   Container,
@@ -13,15 +14,11 @@ import {
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useNavigate } from "react-router-dom";
-import api from "../back-end/api"; // ✅ Import axios instance
+import api from "../back-end/api"; 
 
-// ✅ Validation schema
 const validationSchema = Yup.object({
-  fullName: Yup.string().required("Full Name is required"),
+  fullName: Yup.string().required("Name is required"),
   email: Yup.string().email("Invalid email").required("Email is required"),
-  phone: Yup.string()
-    .matches(/^[0-9]{10}$/, "Phone must be 10 digits")
-    .required("Phone is required"),
   password: Yup.string()
     .min(6, "Minimum 6 characters")
     .required("Password is required"),
@@ -30,7 +27,7 @@ const validationSchema = Yup.object({
     .required("Confirm Password is required"),
 });
 
-const RegistrationForm = () => {
+export default function RegistrationForm() {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const navigate = useNavigate();
@@ -39,28 +36,21 @@ const RegistrationForm = () => {
     initialValues: {
       fullName: "",
       email: "",
-      phone: "",
       password: "",
       confirmPassword: "",
     },
     validationSchema,
     onSubmit: async (values, { resetForm }) => {
       try {
-        // ✅ Rename `fullName` to `name` for backend compatibility
         const { confirmPassword, fullName, ...rest } = values;
         const userData = { name: fullName, ...rest };
 
         const response = await api.post("/auth/register", userData);
-
-        const { token, role } = response.data || {};
-        if (token) {
-          localStorage.setItem("token", token);
-          localStorage.setItem("role", role || "user");
+        if (response.status === 201 || response.status === 200) {
+          alert("Registration Successful! Please login.");
+          resetForm();
+          navigate("/login");
         }
-
-        alert("Registration Successful!");
-        resetForm();
-        navigate("/login");
       } catch (error) {
         console.error(error);
         alert(error.response?.data?.message || "Registration Failed");
@@ -69,28 +59,31 @@ const RegistrationForm = () => {
   });
 
   return (
-    <Box sx={{ bgcolor: "skyblue", py: 4 }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       <Container maxWidth="xs">
         <Box
           sx={{
-            p: isSmallScreen ? 2 : 3,
-            bgcolor: "#ffffff",
-            borderRadius: 2,
-            boxShadow: 4,
+            p: isSmallScreen ? 3 : 4,
+            bgcolor: "rgba(255,255,255,0.95)",
+            borderRadius: 3,
+            boxShadow: "0px 8px 25px rgba(0,0,0,0.2)",
           }}
         >
           <Typography
-            sx={{
-              color: "darkblue",
-              fontFamily: "sans-serif",
-              fontWeight: "bold",
-            }}
-            variant="h4"
-            gutterBottom
             align="center"
-            color="primary"
+            sx={{ fontWeight: "bold", color: "#1a2a6c" }}
+            variant={isSmallScreen ? "h5" : "h4"}
+            gutterBottom
           >
-            Register
+            Create Account
           </Typography>
 
           <form onSubmit={formik.handleSubmit}>
@@ -98,13 +91,8 @@ const RegistrationForm = () => {
               {[
                 { name: "fullName", label: "Full Name" },
                 { name: "email", label: "Email" },
-                { name: "phone", label: "Phone Number" },
                 { name: "password", label: "Password", type: "password" },
-                {
-                  name: "confirmPassword",
-                  label: "Confirm Password",
-                  type: "password",
-                },
+                { name: "confirmPassword", label: "Confirm Password", type: "password" },
               ].map((field) => (
                 <Grid item key={field.name}>
                   <TextField
@@ -116,42 +104,32 @@ const RegistrationForm = () => {
                     value={formik.values[field.name]}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    error={
-                      formik.touched[field.name] &&
-                      Boolean(formik.errors[field.name])
-                    }
-                    helperText={
-                      formik.touched[field.name] && formik.errors[field.name]
-                    }
+                    error={formik.touched[field.name] && Boolean(formik.errors[field.name])}
+                    helperText={formik.touched[field.name] && formik.errors[field.name]}
                   />
                 </Grid>
               ))}
-
               <Grid item>
                 <Button
                   type="submit"
                   variant="contained"
-                  color="primary"
                   fullWidth
-                  sx={{ py: 1.2, fontWeight: "bold" }}
+                  sx={{
+                    py: 1.3,
+                    fontWeight: "bold",
+                    background: "linear-gradient(90deg, #1a2a6c, #b21f1f)",
+                    "&:hover": {
+                      background: "linear-gradient(90deg, #1a2a6c, #fdbb2d)",
+                    },
+                  }}
                 >
                   Register
                 </Button>
               </Grid>
-
               <Grid item>
-                <Typography
-                  sx={{
-                    color: "darkblue",
-                    fontFamily: "sans-serif",
-                    fontWeight: "bold",
-                  }}
-                  variant="body2"
-                  align="center"
-                  mt={1}
-                >
+                <Typography align="center">
                   Already have an account?{" "}
-                  <Link href="/login" underline="hover" color="primary">
+                  <Link href="/login" sx={{ fontWeight: "bold", color: "#b21f1f" }}>
                     Login
                   </Link>
                 </Typography>
@@ -162,6 +140,4 @@ const RegistrationForm = () => {
       </Container>
     </Box>
   );
-};
-
-export default RegistrationForm;
+}

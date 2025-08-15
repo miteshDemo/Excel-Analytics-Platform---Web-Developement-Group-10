@@ -1,17 +1,23 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
 export default function PrivateRoute({ children, roleRequired }) {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
+  const location = useLocation();
 
+  // If not logged in → send to login
   if (!token) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  // If logged in but wrong role → redirect to their correct dashboard
   if (roleRequired && role !== roleRequired) {
-    return <Navigate to="/" />;
+    return role === "admin"
+      ? <Navigate to="/admin" replace />
+      : <Navigate to="/dashboard" replace />;
   }
 
+  
   return children;
 }
