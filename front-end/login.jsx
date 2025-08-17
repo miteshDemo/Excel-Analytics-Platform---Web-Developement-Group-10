@@ -45,7 +45,7 @@ export default function LoginForm() {
     <Box
       sx={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)",
+        background: "linear-gradient(135deg, #006400, #228B22, #ffffff)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -60,7 +60,7 @@ export default function LoginForm() {
             boxShadow: "0px 8px 25px rgba(0,0,0,0.2)",
           }}
         >
-          <Typography align="center" sx={{ fontWeight: "bold", color: "#1a2a6c" }} variant="h4" gutterBottom>
+          <Typography align="center" sx={{ fontWeight: "bold", color: "#1a2a6c", fontFamily:"unset" }} variant="h4" gutterBottom>
             User Login
           </Typography>
           <form onSubmit={formik.handleSubmit}>
@@ -82,7 +82,7 @@ export default function LoginForm() {
                   sx={{
                     py: 1.3,
                     fontWeight: "bold",
-                    background: "linear-gradient(90deg, #1a2a6c, #b21f1f)",
+                    background: "green",
                     "&:hover": { background: "linear-gradient(90deg, #1a2a6c, #fdbb2d)" },
                   }}
                   disabled={loading}>
@@ -90,9 +90,9 @@ export default function LoginForm() {
                 </Button>
               </Grid>
               <Grid item>
-                <Typography align="center">
+                <Typography align="center" sx={{fontFamily:"unset" }}>
                   New here?{" "}
-                  <Link href="/register" sx={{ fontWeight: "bold", color: "#b21f1f" }}>
+                  <Link href="/register" sx={{ fontWeight: "bold", color: "blue" }}>
                     Create Account
                   </Link>
                 </Typography>
