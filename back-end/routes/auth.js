@@ -4,55 +4,34 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 const router = express.Router();
+const JWT_SECRET = "mitesh123@#$"; // Move to .env in production
 
-// REGISTER
-router.post("/register", async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    // ✅ Check if email exists
-    const existingEmail = await User.findOne({ email });
-    if (existingEmail) {
-      return res.status(400).json({ message: "Email already exists" });
-    }
-
-    // ✅ Check if username exists
-    const existingName = await User.findOne({ name });
-    if (existingName) {
-      return res.status(400).json({ message: "Username already taken" });
-    }
-
-    // Hash password
-    const hashed = await bcrypt.hash(password, 10);
-
-    // Save user
-    const user = new User({ name, email, password: hashed });
-    await user.save();
-
-    res.status(201).json({ message: "User registered successfully" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// LOGIN
+// LOGIN Route
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
+    // Check if user exists
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid email or password" });
+    if (!user) {
+      return res.status(400).json({ message: "Email is not registered" });
+    }
 
+    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid email or password" });
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid password" });
+    }
 
+    // Role validation (optional)
+    if (role && user.role !== role) {
+      return res.status(403).json({ message: `This account is not a ${role}` });
+    }
+
+    // Generate JWT Token
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET || "mitesh123",
+      JWT_SECRET,
       { expiresIn: "1h" }
     );
 
@@ -63,7 +42,8 @@ router.post("/login", async (req, res) => {
       role: user.role,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Login Error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

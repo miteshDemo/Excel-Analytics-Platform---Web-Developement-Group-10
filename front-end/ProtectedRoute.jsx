@@ -11,13 +11,15 @@ export default function PrivateRoute({ children, roleRequired }) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // If logged in but wrong role → redirect to their correct dashboard
+  // Role mismatch → redirect properly
   if (roleRequired && role !== roleRequired) {
-    return role === "admin"
-      ? <Navigate to="/admin" replace />
-      : <Navigate to="/dashboard" replace />;
+    if (role === "admin") {
+      return <Navigate to="/admin" replace />;
+    }
+    if (role === "user") {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
-  
   return children;
 }

@@ -17,12 +17,26 @@ import * as Yup from "yup";
 import { useNavigate } from "react-router-dom";
 import api from "../back-end/api";
 
+// ✅ Custom Validation Schema
 const validationSchema = Yup.object({
-  fullName: Yup.string().required("Name is required"),
-  email: Yup.string().email("Invalid email").required("Email is required"),
+  fullName: Yup.string()
+    .matches(/^[a-z\s]+$/, "Only small letters allowed (no numbers/symbols)")
+    .required("Name is required"),
+
+  email: Yup.string()
+    .matches(
+      /^[a-zA-Z0-9._%+-]+@gmail\.com$/,
+      "Email must be a valid Gmail (example@gmail.com)"
+    )
+    .required("Email is required"),
+
   password: Yup.string()
-    .min(6, "Minimum 6 characters")
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+      "Password must be at least 8 chars, include uppercase, lowercase, number & special char"
+    )
     .required("Password is required"),
+
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password")], "Passwords must match")
     .required("Confirm Password is required"),
@@ -33,8 +47,8 @@ export default function RegistrationForm() {
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const navigate = useNavigate();
 
-  const [open, setOpen] = useState(false); // for success popup
-  const [errorMessage, setErrorMessage] = useState(""); // for error popup
+  const [open, setOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleClose = () => setOpen(false);
 
@@ -53,14 +67,15 @@ export default function RegistrationForm() {
 
         const response = await api.post("/auth/register", userData);
         if (response.status === 201 || response.status === 200) {
-          setOpen(true); // ✅ show success popup
+          setErrorMessage("");
+          setOpen(true);
           resetForm();
-          setTimeout(() => navigate("/login"), 2000); // redirect after 2s
+          setTimeout(() => navigate("/login"), 2000);
         }
       } catch (error) {
         console.error(error);
         setErrorMessage(error.response?.data?.message || "Registration Failed");
-        setOpen(true); // ✅ show error popup
+        setOpen(true);
       }
     },
   });
