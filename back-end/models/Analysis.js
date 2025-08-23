@@ -2,9 +2,11 @@ import mongoose from "mongoose";
 
 const analysisSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    file: { type: mongoose.Schema.Types.ObjectId, ref: "Upload" },
-    result: { type: String }, // e.g., summary, status
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    fileName: { type: String, required: true },
+    // store any shape of analysis result
+    result: { type: mongoose.Schema.Types.Mixed, required: true },
+    date: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
