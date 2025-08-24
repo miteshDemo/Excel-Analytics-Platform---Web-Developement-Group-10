@@ -265,12 +265,29 @@ export default function App() {
     }
   };
 
-  const handleDownload = async (fileId, fileName) => {
+  const handleDownload = async (file) => {
     try {
-      await MOCK_API.downloadFile(fileId);
+      // Simulate fetching file content (e.g., from a server or mock source)
+      const fileContent = "This is the content of the downloaded file. It can be any data from your application.";
+      const blob = new Blob([fileContent], { type: "text/plain" });
+
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create a temporary link element
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name; // Set the filename for download
+      document.body.appendChild(a);
+      a.click(); // Trigger the download
+      
+      // Clean up by removing the link and revoking the URL
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
       setNotification({
         open: true,
-        message: `Downloaded ${fileName}`,
+        message: `Downloaded ${file.name} successfully`,
         severity: "success",
       });
     } catch (err) {
@@ -298,7 +315,7 @@ export default function App() {
     });
   };
 
-  // Now handles analysis without a prompt
+  // Now handles analysis without a prompt, with exponential backoff
   const handleAnalyzeFile = async (file) => {
     setAnalysisLoading(true);
     const prompt = `Generate JSON data for a bar chart with 5 categories and corresponding values. The values should be integers between 10 and 100. The JSON structure should be an array of objects, with each object having 'category' (string) and 'value' (number) keys.`;
@@ -324,41 +341,51 @@ export default function App() {
       },
     };
 
-    const apiKey = ""; // Canvas will automatically provide the API key
+    const apiKey = ""; 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
     let data;
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json();
-      const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (jsonText) {
-        data = JSON.parse(jsonText);
-      } else {
-        throw new Error("Invalid response from API");
+    let retries = 0;
+    const maxRetries = 5;
+    const baseDelay = 1000;
+
+    while (retries < maxRetries) {
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (jsonText) {
+            data = JSON.parse(jsonText);
+            break; // Success, exit loop
+          } else {
+            throw new Error("Invalid response from API");
+          }
+        } else {
+          // Handle HTTP errors
+          if (response.status === 429) { // Too many requests
+            const delay = baseDelay * Math.pow(2, retries);
+            console.warn(`Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            retries++;
+          } else {
+            throw new Error(`API returned status code: ${response.status}`);
+          }
+        }
+      } catch (err) {
+        console.error("API call failed:", err);
+        const delay = baseDelay * Math.pow(2, retries);
+        console.warn(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        retries++;
       }
-    } catch (err) {
-      console.error("API call failed:", err);
-      // Fallback to mock data if API call fails
-      data = [
-        { category: "A", value: Math.floor(Math.random() * 90) + 10 },
-        { category: "B", value: Math.floor(Math.random() * 90) + 10 },
-        { category: "C", value: Math.floor(Math.random() * 90) + 10 },
-        { category: "D", value: Math.floor(Math.random() * 90) + 10 },
-        { category: "E", value: Math.floor(Math.random() * 90) + 10 },
-      ];
-      setNotification({
-        open: true,
-        message: "Failed to generate AI analysis, using mock data.",
-        severity: "error",
-      });
-    } finally {
-      setAnalysisLoading(false);
     }
+    setAnalysisLoading(false);
     
     if (data && data.length > 0) {
       setSelectedFileData(data);
@@ -378,9 +405,27 @@ export default function App() {
         severity: "info",
       });
     } else {
+      // Fallback to mock data if all retries fail
+      data = [
+        { category: "A", value: Math.floor(Math.random() * 90) + 10 },
+        { category: "B", value: Math.floor(Math.random() * 90) + 10 },
+        { category: "C", value: Math.floor(Math.random() * 90) + 10 },
+        { category: "D", value: Math.floor(Math.random() * 90) + 10 },
+        { category: "E", value: Math.floor(Math.random() * 90) + 10 },
+      ];
+      setSelectedFileData(data);
+      setXAxis(Object.keys(data[0])[0]);
+      setYAxis(Object.keys(data[0])[1]);
+      setChartOpen(true);
+      const analysis = {
+        file: file.name,
+        date: new Date().toLocaleString(),
+        type: "AI-Powered Analysis (Using Mock Data)",
+      };
+      setHistory((prev) => [...prev, analysis]);
       setNotification({
         open: true,
-        message: "Analysis failed: No data generated.",
+        message: "Failed to generate AI analysis after multiple retries, using mock data.",
         severity: "error",
       });
     }
@@ -600,7 +645,7 @@ export default function App() {
                               fontWeight: "bold",
                               fontFamily: "unset",
                             }}
-                            onClick={() => handleDownload(file._id, file.name)}
+                            onClick={() => handleDownload(file)}
                           >
                             <DownloadIcon fontSize="small" /> Download
                           </Button>

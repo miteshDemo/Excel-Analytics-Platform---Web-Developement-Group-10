@@ -1,15 +1,13 @@
-// controller/adminController.js
 import User from "../models/User.js";
 import Upload from "../models/Upload.js";
 import Analysis from "../models/Analysis.js";
 import Download from "../models/Download.js";
 
-// 📌 Get all users with activity summary
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
 
-    // Add activity counts per user
+   
     const usersWithStats = await Promise.all(
       users.map(async (user) => {
         const [totalUploads, totalAnalyses, totalDownloads] = await Promise.all([
@@ -37,7 +35,7 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// 📌 Get single user with activity summary
+
 export const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -64,7 +62,6 @@ export const getUserById = async (req, res) => {
   }
 };
 
-// 📌 Update user
 export const updateUser = async (req, res) => {
   try {
     const { name, email, role } = req.body;
@@ -83,16 +80,14 @@ export const updateUser = async (req, res) => {
   }
 };
 
-// 📌 Delete user and related data
 export const deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Delete user
     await user.deleteOne();
 
-    // Optionally delete related uploads, analyses, downloads
+   
     await Upload.deleteMany({ user: user._id });
     await Analysis.deleteMany({ userId: user._id });
     await Download.deleteMany({ user: user._id });
@@ -104,7 +99,7 @@ export const deleteUser = async (req, res) => {
   }
 };
 
-// 📌 Get dashboard summary
+
 export const getSummary = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
