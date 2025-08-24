@@ -1,26 +1,66 @@
+// controller/adminController.js
 import User from "../models/User.js";
 import Upload from "../models/Upload.js";
 import Analysis from "../models/Analysis.js";
 import Download from "../models/Download.js";
 
-// 📌 Get all users
+// 📌 Get all users with activity summary
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
-    res.json(users);
+
+    // Add activity counts per user
+    const usersWithStats = await Promise.all(
+      users.map(async (user) => {
+        const [totalUploads, totalAnalyses, totalDownloads] = await Promise.all([
+          Upload.countDocuments({ user: user._id }),
+          Analysis.countDocuments({ userId: user._id }),
+          Download.countDocuments({ user: user._id }),
+        ]);
+
+        return {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          totalUploads,
+          totalAnalyses,
+          totalDownloads,
+        };
+      })
+    );
+
+    res.json(usersWithStats);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// 📌 Get single user
+// 📌 Get single user with activity summary
 export const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
+
+    const [totalUploads, totalAnalyses, totalDownloads] = await Promise.all([
+      Upload.countDocuments({ user: user._id }),
+      Analysis.countDocuments({ userId: user._id }),
+      Download.countDocuments({ user: user._id }),
+    ]);
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      totalUploads,
+      totalAnalyses,
+      totalDownloads,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -38,24 +78,33 @@ export const updateUser = async (req, res) => {
     await user.save();
     res.json({ message: "User updated successfully", user });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// 📌 Delete user
+// 📌 Delete user and related data
 export const deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Delete user
     await user.deleteOne();
-    res.json({ message: "User deleted successfully" });
+
+    // Optionally delete related uploads, analyses, downloads
+    await Upload.deleteMany({ user: user._id });
+    await Analysis.deleteMany({ userId: user._id });
+    await Download.deleteMany({ user: user._id });
+
+    res.json({ message: "User and related data deleted successfully" });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// 📌 Get activity summary
+// 📌 Get dashboard summary
 export const getSummary = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
@@ -70,6 +119,7 @@ export const getSummary = async (req, res) => {
       totalDownloads,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
