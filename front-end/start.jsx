@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import axios from "axios";
 
 const facilities = [
   {
@@ -76,11 +77,16 @@ const StartPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      alert("Message sent successfully!");
-      setFormData({ name: "", email: "", message: "" });
+      try {
+        await axios.post("/api/contact", formData);
+        alert("Message sent successfully!");
+        setFormData({ name: "", email: "", message: "" });
+      } catch (err) {
+        alert("Failed to send message. Please try again.");
+      }
     }
   };
 
@@ -95,7 +101,6 @@ const StartPage = () => {
         backgroundColor: "#f5f5f5",
       }}
     >
-      {/* Navbar */}
       <AppBar
         position="fixed"
         sx={{
@@ -162,7 +167,6 @@ const StartPage = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Background */}
       <Box
         sx={{
           position: "absolute",
@@ -177,7 +181,6 @@ const StartPage = () => {
         }}
       />
 
-      {/* Hero Section */}
       <Container maxWidth="md" sx={{ zIndex: 1, textAlign: "center", mt: 14 }}>
         <Stack spacing={3} alignItems="center">
           <motion.img
@@ -228,7 +231,6 @@ const StartPage = () => {
         </Stack>
       </Container>
 
-      {/* Facilities */}
       <Container
         ref={facilitiesRef}
         maxWidth="lg"
@@ -287,7 +289,6 @@ const StartPage = () => {
         </Grid>
       </Container>
 
-      {/* Quick Contact */}
       <Container ref={contactRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -357,7 +358,6 @@ const StartPage = () => {
         </motion.div>
       </Container>
 
-      {/* About Section */}
       <Container ref={aboutRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}

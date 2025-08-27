@@ -2,9 +2,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-const JWT_SECRET = "mitesh123@#$"; // For production, move this to .env
+const JWT_SECRET = "mitesh123@#$"; 
 
-// REGISTER
+
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -30,7 +30,7 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// LOGIN
+
 export const loginUser = async (req, res) => {
   try {
     const { email, password, role } = req.body;

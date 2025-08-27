@@ -2,10 +2,9 @@ import fs from "fs";
 import path from "path";
 import File from "../models/file.js";
 
-// POST /api/files/upload (multer already parsed file)
 export const uploadFile = async (req, res) => {
   try {
-    // req.file provided by multer.single('file')
+
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
@@ -30,7 +29,7 @@ export const uploadFile = async (req, res) => {
   }
 };
 
-// GET /api/files
+
 export const getFiles = async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
@@ -44,7 +43,7 @@ export const getFiles = async (req, res) => {
   }
 };
 
-// GET /api/files/download/:id
+
 export const downloadFile = async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
@@ -53,7 +52,7 @@ export const downloadFile = async (req, res) => {
     const file = await File.findOne({ _id: req.params.id, userId: req.user.id });
     if (!file) return res.status(404).json({ error: "File not found" });
 
-    // Ensure file exists on disk
+
     if (!fs.existsSync(file.path)) {
       return res.status(410).json({ error: "File is missing on server" });
     }
@@ -65,7 +64,7 @@ export const downloadFile = async (req, res) => {
   }
 };
 
-// DELETE /api/files/:id
+
 export const deleteFile = async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
@@ -80,7 +79,7 @@ export const deleteFile = async (req, res) => {
       return res.status(404).json({ error: "File not found" });
     }
 
-    // best-effort remove from disk
+
     try {
       if (file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
     } catch (e) {

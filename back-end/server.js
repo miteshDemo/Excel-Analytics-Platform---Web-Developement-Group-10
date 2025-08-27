@@ -8,28 +8,22 @@ import User from "./models/User.js";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import fileRoutes from "./routes/fileRoutes.js";
-// ❌ Do NOT import the model just to mount it as middleware
-// import Analysis from "./models/Analysis.js";
 import analysisRoutes from "./routes/analysisRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/api/contact", contactRoutes);
 
-// ❌ WRONG (remove this): app.use("/api/analysis", Analysis);
-// ✅ RIGHT: mount the router
 app.use("/api/analysis", analysisRoutes);
 
-// Serve uploads
 app.use("/uploads", express.static(path.resolve("uploads")));
 
-// MongoDB
 const MONGO_URI = "mongodb://127.0.0.1:27017/jwt_auth";
 
-// Auto-create Admin
 const createAdmin = async () => {
   try {
     const adminEmail = "admin1@gmail.com";
@@ -55,7 +49,6 @@ const createAdmin = async () => {
   }
 };
 
-// Connect MongoDB
 mongoose
   .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(async () => {
@@ -64,12 +57,10 @@ mongoose
   })
   .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
-// Other routes
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/files", fileRoutes);
 
-// Default route
 app.get("/", (req, res) => res.send("🚀 API running..."));
 
 const PORT = 5000;

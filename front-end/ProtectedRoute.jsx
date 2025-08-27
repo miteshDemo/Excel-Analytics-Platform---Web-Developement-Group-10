@@ -6,12 +6,10 @@ export default function PrivateRoute({ children, roleRequired }) {
   const role = localStorage.getItem("role");
   const location = useLocation();
 
-  // If not logged in → send to login
   if (!token) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // Role mismatch → redirect properly
   if (roleRequired && role !== roleRequired) {
     if (role === "admin") {
       return <Navigate to="/admin" replace />;

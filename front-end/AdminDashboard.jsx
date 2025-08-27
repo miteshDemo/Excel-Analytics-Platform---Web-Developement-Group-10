@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
@@ -23,8 +23,53 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  createTheme,
+  ThemeProvider,
 } from "@mui/material";
 import { Edit, Delete, Save, Cancel, Refresh } from "@mui/icons-material";
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#1e8449",
+      light: "#4caf50",
+      contrastText: "#fff",
+    },
+    secondary: {
+      main: "#fbc02d",
+    },
+    background: {
+      default: "#f0f2f5",
+      paper: "#ffffff",
+    },
+  },
+  typography: {
+    fontFamily: "Inter, sans-serif",
+    h4: {
+      fontWeight: 700,
+    },
+    h6: {
+      fontWeight: 600,
+    },
+  },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 20,
+          textTransform: "none",
+        },
+      },
+    },
+  },
+});
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
@@ -35,18 +80,16 @@ export default function AdminDashboard() {
   const [loadingLogout, setLoadingLogout] = useState(false);
   const navigate = useNavigate();
 
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+  if (!token || role !== "admin") {
+    return <Navigate to="/login" replace />;
+  }
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-
-    if (!token || role !== "admin") {
-      navigate("/login");
-      return;
-    }
-
     fetchUsers();
     fetchSummary();
-  }, [navigate]);
+  }, []);
 
   const fetchUsers = () => {
     const token = localStorage.getItem("token");
@@ -75,7 +118,6 @@ export default function AdminDashboard() {
       .catch((err) => console.error("Failed to fetch summary:", err));
   };
 
-  // Logout workflow
   const handleLogoutClick = () => {
     setOpenLogoutDialog(true);
   };
@@ -88,7 +130,7 @@ export default function AdminDashboard() {
       setLoadingLogout(false);
       setOpenLogoutDialog(false);
       navigate("/login");
-    }, 2000); // 2s fake loading
+    }, 2000);
   };
 
   const cancelLogout = () => {
@@ -130,11 +172,9 @@ export default function AdminDashboard() {
     }
   };
 
-  // Split users into Admins and Normal Users
   const admins = users.filter((u) => u.role === "admin");
   const normalUsers = users.filter((u) => u.role === "user");
 
-  // Reusable table renderer
   const renderTable = (data) => (
     <Table>
       <TableHead>
@@ -215,104 +255,116 @@ export default function AdminDashboard() {
   );
 
   return (
-    <Box>
-      {/* Top Navbar */}
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: "bold" }}>
-            Admin Dashboard
-          </Typography>
-          <IconButton color="inherit" onClick={fetchSummary}>
-            <Refresh />
-          </IconButton>
-          <Button
-            color="inherit"
-            onClick={handleLogoutClick}
-            sx={{ fontWeight: "bold" }}
-          >
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
-
-      <Container sx={{ mt: 4 }}>
-        {/* Summary Cards */}
-        <Grid container spacing={2} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ p: 2, textAlign: "center" }}>
-              <Typography variant="h6">Total Admins</Typography>
-              <Typography variant="h4">{admins.length}</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ p: 2, textAlign: "center" }}>
-              <Typography variant="h6">Total Users</Typography>
-              <Typography variant="h4">{normalUsers.length}</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Paper sx={{ p: 2, textAlign: "center" }}>
-              <Typography variant="h6">Uploads</Typography>
-              <Typography variant="h4">{summary.totalUploads || 0}</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Paper sx={{ p: 2, textAlign: "center" }}>
-              <Typography variant="h6">Analyses</Typography>
-              <Typography variant="h4">{summary.totalAnalyses || 0}</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Paper sx={{ p: 2, textAlign: "center" }}>
-              <Typography variant="h6">Downloads</Typography>
-              <Typography variant="h4">{summary.totalDownloads || 0}</Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-
-        {/* Admins Section */}
-        <Paper sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ p: 2, fontWeight: "bold" }}>
-            Admins
-          </Typography>
-          <Divider />
-          {renderTable(admins)}
-        </Paper>
-
-        {/* Users Section */}
-        <Paper>
-          <Typography variant="h6" sx={{ p: 2, fontWeight: "bold" }}>
-            Users
-          </Typography>
-          <Divider />
-          {renderTable(normalUsers)}
-        </Paper>
-      </Container>
-
-      {/* Logout Confirmation Dialog */}
-      <Dialog open={openLogoutDialog} onClose={cancelLogout}>
-        <DialogTitle>Confirm Logout</DialogTitle>
-        <DialogContent>
-          {loadingLogout ? (
-            <Box display="flex" justifyContent="center" alignItems="center" p={2}>
-              <CircularProgress />
-              <Typography sx={{ ml: 2 }}>Logging out...</Typography>
-            </Box>
-          ) : (
-            <Typography>Are you sure you want to logout?</Typography>
-          )}
-        </DialogContent>
-        {!loadingLogout && (
-          <DialogActions>
-            <Button onClick={cancelLogout} color="primary">
-              Cancel
-            </Button>
-            <Button onClick={confirmLogout} color="error" variant="contained">
+    <ThemeProvider theme={theme}>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          backgroundColor: theme.palette.background.default,
+        }}
+      >
+        {/* Top Navbar */}
+        <AppBar position="static" color="primary" elevation={0}>
+          <Toolbar>
+            <Typography
+              variant="h6"
+              sx={{
+                flexGrow: 1,
+                fontWeight: "bold",
+                color: theme.palette.primary.contrastText,
+              }}
+            >
+              Admin Dashboard
+            </Typography>
+            <IconButton color="inherit" onClick={fetchSummary}>
+              <Refresh />
+            </IconButton>
+            <Button
+              color="secondary"
+              variant="contained"
+              onClick={handleLogoutClick}
+              sx={{ fontWeight: "bold" }}
+            >
               Logout
             </Button>
-          </DialogActions>
-        )}
-      </Dialog>
-    </Box>
+          </Toolbar>
+        </AppBar>
+
+        <Container sx={{ mt: 6 }}>
+          <Grid container spacing={4} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6}>
+              <Paper
+                sx={{
+                  p: 3,
+                  textAlign: "center",
+                  bgcolor: "primary.light",
+                  color: "primary.contrastText",
+                }}
+              >
+                <Typography variant="h6">Total Admins</Typography>
+                <Typography variant="h4">{admins.length}</Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Paper
+                sx={{
+                  p: 3,
+                  textAlign: "center",
+                  bgcolor: "primary.light",
+                  color: "primary.contrastText",
+                }}
+              >
+                <Typography variant="h6">Total Users</Typography>
+                <Typography variant="h4">{normalUsers.length}</Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+
+          <Paper sx={{ mb: 4, overflow: "hidden" }} elevation={2}>
+            <Typography variant="h6" sx={{ p: 2, fontWeight: "bold" }}>
+              Admins
+            </Typography>
+            <Divider />
+            {renderTable(admins)}
+          </Paper>
+
+          <Paper elevation={2} sx={{ overflow: "hidden" }}>
+            <Typography variant="h6" sx={{ p: 2, fontWeight: "bold" }}>
+              Users
+            </Typography>
+            <Divider />
+            {renderTable(normalUsers)}
+          </Paper>
+        </Container>
+
+        <Dialog open={openLogoutDialog} onClose={cancelLogout}>
+          <DialogTitle>Confirm Logout</DialogTitle>
+          <DialogContent>
+            {loadingLogout ? (
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                p={2}
+              >
+                <CircularProgress />
+                <Typography sx={{ ml: 2 }}>Logging out...</Typography>
+              </Box>
+            ) : (
+              <Typography>Are you sure you want to logout?</Typography>
+            )}
+          </DialogContent>
+          {!loadingLogout && (
+            <DialogActions>
+              <Button onClick={cancelLogout} color="primary">
+                Cancel
+              </Button>
+              <Button onClick={confirmLogout} color="error" variant="contained">
+                Logout
+              </Button>
+            </DialogActions>
+          )}
+        </Dialog>
+      </Box>
+    </ThemeProvider>
   );
 }

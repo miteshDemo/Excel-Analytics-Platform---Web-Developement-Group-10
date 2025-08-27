@@ -7,7 +7,6 @@ export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
 
-   
     const usersWithStats = await Promise.all(
       users.map(async (user) => {
         const [totalUploads, totalAnalyses, totalDownloads] = await Promise.all([
@@ -87,7 +86,7 @@ export const deleteUser = async (req, res) => {
 
     await user.deleteOne();
 
-   
+
     await Upload.deleteMany({ user: user._id });
     await Analysis.deleteMany({ userId: user._id });
     await Download.deleteMany({ user: user._id });

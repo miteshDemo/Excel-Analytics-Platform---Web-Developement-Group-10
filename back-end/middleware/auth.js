@@ -1,8 +1,7 @@
-// middleware/auth.js
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-// Middleware to protect routes (requires login)
+
 export const protect = async (req, res, next) => {
   let token;
 
@@ -12,7 +11,7 @@ export const protect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(" ")[1];
-      const decoded = jwt.verify(token, "mitesh123@#$"); // Use env var in production
+      const decoded = jwt.verify(token, "mitesh123@#$"); 
 
       req.user = await User.findById(decoded.id).select("-password");
 
@@ -32,7 +31,7 @@ export const protect = async (req, res, next) => {
   }
 };
 
-// Admin-only middleware
+
 export const adminOnly = (req, res, next) => {
   if (req.user && req.user.role === "admin") {
     next();

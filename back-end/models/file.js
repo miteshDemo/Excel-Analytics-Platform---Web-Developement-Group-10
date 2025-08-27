@@ -2,15 +2,13 @@ import mongoose from "mongoose";
 
 const fileSchema = new mongoose.Schema(
   {
-    // Shown to user
-    name: { type: String, required: true }, // original filename
+    name: { type: String, required: true },
     uploadedAt: { type: Date, default: Date.now },
     userId: { type: String, required: true },
 
-    // Storage metadata
-    path: { type: String, required: true },   // disk path like uploads/abc123.xlsx
+    path: { type: String, required: true },
     mimetype: { type: String, required: true },
-    size: { type: Number, required: true },   // bytes
+    size: { type: Number, required: true },
   },
   { timestamps: true }
 );
