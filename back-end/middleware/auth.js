@@ -1,7 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-
 export const protect = async (req, res, next) => {
   let token;
 
@@ -11,7 +10,7 @@ export const protect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(" ")[1];
-      const decoded = jwt.verify(token, "mitesh123@#$"); 
+      const decoded = jwt.verify(token, "mitesh123@#$");
 
       req.user = await User.findById(decoded.id).select("-password");
 
@@ -31,11 +30,20 @@ export const protect = async (req, res, next) => {
   }
 };
 
-
+// Admin-only access
 export const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === "admin") {
+  if (req.user && (req.user.role === "admin" || req.user.role === "superadmin")) {
     next();
   } else {
     res.status(403).json({ message: "Admin access only" });
+  }
+};
+
+// Super Admin-only access
+export const superAdminOnly = (req, res, next) => {
+  if (req.user && req.user.role === "superadmin") {
+    next();
+  } else {
+    res.status(403).json({ message: "Super Admin access only" });
   }
 };

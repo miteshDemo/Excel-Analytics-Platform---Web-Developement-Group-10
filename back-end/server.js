@@ -12,58 +12,28 @@ import analysisRoutes from "./routes/analysisRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Routes
 app.use("/api/contact", contactRoutes);
-
 app.use("/api/analysis", analysisRoutes);
-
-app.use("/uploads", express.static(path.resolve("uploads")));
-
-const MONGO_URI = "mongodb://127.0.0.1:27017/jwt_auth";
-
-const createAdmin = async () => {
-  try {
-    const adminEmail = "admin1@gmail.com";
-    const adminPassword = "admin123";
-    const adminName = "Mitesh";
-
-    let admin = await User.findOne({ email: adminEmail });
-    if (!admin) {
-      const hashedPassword = await bcrypt.hash(adminPassword, 10);
-      admin = new User({
-        name: adminName,
-        email: adminEmail,
-        password: hashedPassword,
-        role: "admin",
-      });
-      await admin.save();
-      console.log("✅ Default Admin created:", adminEmail);
-    } else {
-      console.log("ℹ️ Admin already exists:", adminEmail);
-    }
-  } catch (error) {
-    console.error("❌ Error creating admin:", error.message);
-  }
-};
-
-mongoose
-  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(async () => {
-    console.log("✅ MongoDB Connected");
-    await createAdmin();
-  })
-  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
-
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/files", fileRoutes);
 
+// Serve uploads folder
+app.use("/uploads", express.static(path.resolve("uploads")));
+
+const MONGO_URI = "mongodb://127.0.0.1:27017/jwt_auth";
+
+mongoose
+  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+
 app.get("/", (req, res) => res.send("🚀 API running..."));
 
 const PORT = 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
-);
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));

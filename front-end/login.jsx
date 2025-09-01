@@ -18,7 +18,6 @@ import {
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useNavigate } from "react-router-dom";
-
 import axios from "axios";
 
 const theme = createTheme({
@@ -111,7 +110,13 @@ export default function LoginForm() {
           });
 
           setTimeout(() => {
-            window.location.reload();
+            if (role === "superadmin") {
+              navigate("/superadmin-dashboard");
+            } else if (role === "admin") {
+              navigate("/admin-dashboard");
+            } else {
+              navigate("/user-dashboard");
+            }
           }, 1500);
         } else {
           setSnackbar({
@@ -162,7 +167,11 @@ export default function LoginForm() {
               variant="h4"
               gutterBottom
             >
-              {role === "admin" ? "Admin Login" : "User Login"}
+              {role === "admin"
+                ? "Admin Login"
+                : role === "superadmin"
+                ? "Super Admin Login"
+                : "User Login"}
             </Typography>
 
             <Box display="flex" justifyContent="center" mb={2}>
@@ -175,6 +184,7 @@ export default function LoginForm() {
               >
                 <ToggleButton value="user">User</ToggleButton>
                 <ToggleButton value="admin">Admin</ToggleButton>
+                <ToggleButton value="superadmin">Super Admin</ToggleButton>
               </ToggleButtonGroup>
             </Box>
 

@@ -1,94 +1,65 @@
+import File from "../models/file.js";
+import XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
-import File from "../models/file.js";
 
+// Upload & Parse Excel
 export const uploadFile = async (req, res) => {
   try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    // Read Excel file
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    const newFile = new File({
+    const newFile = await File.create({
       name: req.file.originalname,
-      uploadedAt: new Date(),
-      userId: req.user.id,
       path: req.file.path,
       mimetype: req.file.mimetype,
       size: req.file.size,
+      userId: req.user.id,
+      parsedData: jsonData
     });
 
-    await newFile.save();
-    return res.status(201).json(newFile);
-  } catch (err) {
-    console.error("Upload Error:", err);
-    return res.status(500).json({ error: "Failed to upload file" });
+    res.status(201).json({ message: "File uploaded and parsed", file: newFile });
+  } catch (error) {
+    res.status(500).json({ message: "Error uploading file", error: error.message });
   }
 };
 
-
+// Get All Files
 export const getFiles = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const files = await File.find({ userId: req.user.id }).sort({ uploadedAt: -1 });
-    return res.json(files);
-  } catch (err) {
-    console.error("Fetch Error:", err);
-    return res.status(500).json({ error: "Failed to fetch files" });
+    const files = await File.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    res.json(files);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching files", error: error.message });
   }
 };
 
-
+// Download File
 export const downloadFile = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const file = await File.findOne({ _id: req.params.id, userId: req.user.id });
-    if (!file) return res.status(404).json({ error: "File not found" });
+    const file = await File.findById(req.params.id);
+    if (!file) return res.status(404).json({ message: "File not found" });
 
-
-    if (!fs.existsSync(file.path)) {
-      return res.status(410).json({ error: "File is missing on server" });
-    }
-
-    return res.download(file.path, file.name);
-  } catch (err) {
-    console.error("Download Error:", err);
-    return res.status(500).json({ error: "Failed to download file" });
+    res.download(path.resolve(file.path));
+  } catch (error) {
+    res.status(500).json({ message: "Error downloading file", error: error.message });
   }
 };
 
-
+// Delete File
 export const deleteFile = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const file = await File.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.id,
-    });
+    const file = await File.findById(req.params.id);
+    if (!file) return res.status(404).json({ message: "File not found" });
 
-    if (!file) {
-      return res.status(404).json({ error: "File not found" });
-    }
-
-
-    try {
-      if (file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
-    } catch (e) {
-      console.warn("Could not remove file from disk:", e.message);
-    }
-
-    return res.json({ message: "File deleted successfully", id: req.params.id });
-  } catch (err) {
-    console.error("Delete Error:", err);
-    return res.status(500).json({ error: "Failed to delete file" });
+    fs.unlinkSync(file.path);
+    await file.deleteOne();
+    res.json({ message: "File deleted" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting file", error: error.message });
   }
 };

@@ -10,11 +10,16 @@ import {
   Grid,
   Paper,
   TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
 
+// Data for the platform's facilities section
 const facilities = [
   {
     title: "Excel File Upload",
@@ -45,18 +50,30 @@ const facilities = [
 
 const StartPage = () => {
   const navigate = useNavigate();
+  // Using useRef to create references for scrolling to specific sections
   const facilitiesRef = useRef(null);
   const contactRef = useRef(null);
   const aboutRef = useRef(null);
 
+  // State to manage the contact form data
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     message: "",
   });
+  // State for form validation errors
   const [errors, setErrors] = useState({});
+  // State to manage the custom success/error dialog
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
+  // Function to navigate to the registration page
   const handleEnterClick = () => navigate("/register");
+
+  // Functions to scroll smoothly to different sections of the page
   const scrollToFacilities = () =>
     facilitiesRef.current?.scrollIntoView({ behavior: "smooth" });
   const scrollToContact = () =>
@@ -64,6 +81,26 @@ const StartPage = () => {
   const scrollToAbout = () =>
     aboutRef.current?.scrollIntoView({ behavior: "smooth" });
 
+  // A mapping to simplify navigation handlers in the navbar
+  const navHandlers = {
+    Home: () => window.scrollTo({ top: 0, behavior: "smooth" }),
+    Facilities: scrollToFacilities,
+    Contact: scrollToContact,
+    About: scrollToAbout,
+  };
+
+  // Handle changes to form input fields
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  // Close the custom dialog
+  const handleCloseDialog = () => {
+    setDialogState((prevState) => ({ ...prevState, isOpen: false }));
+  };
+
+  // Validate the form data before submission
   const validateForm = () => {
     let newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
@@ -77,15 +114,40 @@ const StartPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
       try {
-        await axios.post("/api/contact", formData);
-        alert("Message sent successfully!");
-        setFormData({ name: "", email: "", message: "" });
+        // Send a POST request to the API
+        const response = await axios.post("http://localhost:5000/api/contact", {
+          name: formData.name,
+          email: formData.email,
+          subject: "Contact Form Submission", // Added a subject field
+          message: formData.message,
+        });
+
+        if (response.status === 201) {
+          setDialogState({
+            isOpen: true,
+            title: "Success",
+            message: "Your message has been sent successfully! 🎉",
+          });
+          setFormData({ name: "", email: "", message: "" });
+        } else {
+          setDialogState({
+            isOpen: true,
+            title: "Error",
+            message: "Failed to send message. Please try again later. 😥",
+          });
+        }
       } catch (err) {
-        alert("Failed to send message. Please try again.");
+        console.error("Error sending message:", err);
+        setDialogState({
+          isOpen: true,
+          title: "Error",
+          message: "Failed to send message. Please try again. 😥",
+        });
       }
     }
   };
@@ -101,6 +163,7 @@ const StartPage = () => {
         backgroundColor: "#f5f5f5",
       }}
     >
+      {/* Top Navbar */}
       <AppBar
         position="fixed"
         sx={{
@@ -127,15 +190,7 @@ const StartPage = () => {
           {["Home", "Facilities", "Contact", "About"].map((label, i) => (
             <Button
               key={i}
-              onClick={
-                label === "Home"
-                  ? () => window.scrollTo({ top: 0, behavior: "smooth" })
-                  : label === "Facilities"
-                  ? scrollToFacilities
-                  : label === "Contact"
-                  ? scrollToContact
-                  : scrollToAbout
-              }
+              onClick={navHandlers[label]}
               sx={{
                 fontWeight: "bold",
                 fontFamily: "unset",
@@ -167,6 +222,7 @@ const StartPage = () => {
         </Toolbar>
       </AppBar>
 
+      {/* Main Hero Section */}
       <Box
         sx={{
           position: "absolute",
@@ -231,6 +287,7 @@ const StartPage = () => {
         </Stack>
       </Container>
 
+      {/* Facilities Section */}
       <Container
         ref={facilitiesRef}
         maxWidth="lg"
@@ -289,6 +346,7 @@ const StartPage = () => {
         </Grid>
       </Container>
 
+      {/* Contact Section */}
       <Container ref={contactRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -315,32 +373,29 @@ const StartPage = () => {
                 <TextField
                   label="Name"
                   fullWidth
+                  name="name"
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
+                  onChange={handleFormChange}
                   error={!!errors.name}
                   helperText={errors.name}
                 />
                 <TextField
                   label="Email"
                   fullWidth
+                  name="email"
                   value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  onChange={handleFormChange}
                   error={!!errors.email}
                   helperText={errors.email}
                 />
                 <TextField
                   label="Message"
                   fullWidth
+                  name="message"
                   multiline
                   rows={4}
                   value={formData.message}
-                  onChange={(e) =>
-                    setFormData({ ...formData, message: e.target.value })
-                  }
+                  onChange={handleFormChange}
                   error={!!errors.message}
                   helperText={errors.message}
                 />
@@ -358,6 +413,7 @@ const StartPage = () => {
         </motion.div>
       </Container>
 
+      {/* About Section */}
       <Container ref={aboutRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -383,6 +439,19 @@ const StartPage = () => {
           </Paper>
         </motion.div>
       </Container>
+
+      {/* Custom Message Dialog */}
+      <Dialog open={dialogState.isOpen} onClose={handleCloseDialog}>
+        <DialogTitle>{dialogState.title}</DialogTitle>
+        <DialogContent>
+          <Typography>{dialogState.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} color="primary" autoFocus>
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

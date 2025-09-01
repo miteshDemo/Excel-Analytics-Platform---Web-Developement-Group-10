@@ -1,25 +1,17 @@
 import express from "express";
 import ContactRequest from "../models/ContactRequest.js";
-const router = express.Router();
 
+const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    const newRequest = new ContactRequest(req.body);
-    await newRequest.save();
-    res.status(201).json({ message: "Request submitted successfully" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
-router.get("/", async (req, res) => {
-  try {
-    const requests = await ContactRequest.find().sort({ date: -1 });
-    res.json(requests);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const { name, email, message } = req.body;
+    const newContactRequest = new ContactRequest({ name, email, message });
+    await newContactRequest.save();
+    res.status(201).json({ message: "Message sent successfully!" });
+  } catch (error) {
+    console.error("Error saving contact request:", error);
+    res.status(500).json({ message: "Server error. Failed to send message." });
   }
 });
 

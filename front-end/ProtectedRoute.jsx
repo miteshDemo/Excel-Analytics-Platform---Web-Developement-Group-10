@@ -11,12 +11,9 @@ export default function PrivateRoute({ children, roleRequired }) {
   }
 
   if (roleRequired && role !== roleRequired) {
-    if (role === "admin") {
-      return <Navigate to="/admin" replace />;
-    }
-    if (role === "user") {
-      return <Navigate to="/dashboard" replace />;
-    }
+    if (role === "superadmin") return <Navigate to="/superadmin" />;
+    if (role === "admin") return <Navigate to="/admin" />;
+    return <Navigate to="/dashboard" />;
   }
 
   return children;

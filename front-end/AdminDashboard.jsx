@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate, Navigate } from "react-router-dom";
 import {
@@ -26,7 +26,7 @@ import {
   createTheme,
   ThemeProvider,
 } from "@mui/material";
-import { Edit, Delete, Save, Cancel, Refresh } from "@mui/icons-material";
+import { Edit, Delete, Save, Cancel } from "@mui/icons-material";
 
 const theme = createTheme({
   palette: {
@@ -72,6 +72,15 @@ const theme = createTheme({
 });
 
 export default function AdminDashboard() {
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+
+  // This conditional check must be the first thing in the component
+  if (!token || role !== "admin") {
+    return <Navigate to="/" replace />;
+  }
+
+  // All React Hooks must be called unconditionally after the initial check
   const [users, setUsers] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
   const [editData, setEditData] = useState({ name: "", email: "", role: "" });
@@ -80,18 +89,7 @@ export default function AdminDashboard() {
   const [loadingLogout, setLoadingLogout] = useState(false);
   const navigate = useNavigate();
 
-  const token = localStorage.getItem("token");
-  const role = localStorage.getItem("role");
-  if (!token || role !== "admin") {
-    return <Navigate to="/login" replace />;
-  }
-
-  useEffect(() => {
-    fetchUsers();
-    fetchSummary();
-  }, []);
-
-  const fetchUsers = () => {
+  const fetchUsers = useCallback(() => {
     const token = localStorage.getItem("token");
     axios
       .get("http://localhost:5000/api/admin/users", {
@@ -106,9 +104,9 @@ export default function AdminDashboard() {
           navigate("/login");
         }
       });
-  };
+  }, [navigate]);
 
-  const fetchSummary = () => {
+  const fetchSummary = useCallback(() => {
     const token = localStorage.getItem("token");
     axios
       .get("http://localhost:5000/api/admin/summary", {
@@ -116,7 +114,12 @@ export default function AdminDashboard() {
       })
       .then((res) => setSummary(res.data))
       .catch((err) => console.error("Failed to fetch summary:", err));
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+    fetchSummary();
+  }, [fetchUsers, fetchSummary]);
 
   const handleLogoutClick = () => {
     setOpenLogoutDialog(true);
@@ -129,7 +132,7 @@ export default function AdminDashboard() {
       localStorage.removeItem("role");
       setLoadingLogout(false);
       setOpenLogoutDialog(false);
-      navigate("/login");
+      navigate("/");
     }, 2000);
   };
 
@@ -275,9 +278,6 @@ export default function AdminDashboard() {
             >
               Admin Dashboard
             </Typography>
-            <IconButton color="inherit" onClick={fetchSummary}>
-              <Refresh />
-            </IconButton>
             <Button
               color="secondary"
               variant="contained"
@@ -288,23 +288,13 @@ export default function AdminDashboard() {
             </Button>
           </Toolbar>
         </AppBar>
-
+        {/*
+          Removed the grid item displaying total admins.
+          The grid container below is also updated to use just one item.
+        */}
         <Container sx={{ mt: 6 }}>
           <Grid container spacing={4} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6}>
-              <Paper
-                sx={{
-                  p: 3,
-                  textAlign: "center",
-                  bgcolor: "primary.light",
-                  color: "primary.contrastText",
-                }}
-              >
-                <Typography variant="h6">Total Admins</Typography>
-                <Typography variant="h4">{admins.length}</Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <Paper
                 sx={{
                   p: 3,
