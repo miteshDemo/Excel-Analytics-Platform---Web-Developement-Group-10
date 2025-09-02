@@ -5,6 +5,6 @@ const router = express.Router();
 
 router.post('/save', saveAnalysis);
 router.get('/history/:userId', getAnalysisHistory);
-router.delete('/:id', deleteAnalysis); // NEW delete route
+router.delete('/:id', deleteAnalysis);
 
 export default router;

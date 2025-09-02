@@ -1,6 +1,6 @@
 import Analysis from '../models/Analysis.js';
 
-// Save new analysis
+
 export const saveAnalysis = async (req, res) => {
   try {
     const { userId, fileName, result } = req.body;
@@ -15,7 +15,7 @@ export const saveAnalysis = async (req, res) => {
   }
 };
 
-// Fetch history
+
 export const getAnalysisHistory = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -27,7 +27,7 @@ export const getAnalysisHistory = async (req, res) => {
   }
 };
 
-// Delete history item
+
 export const deleteAnalysis = async (req, res) => {
   try {
     const { id } = req.params;
