@@ -75,22 +75,21 @@ export default function AdminDashboard() {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
 
-  // This conditional check must be the first thing in the component
   if (!token || role !== "admin") {
     return <Navigate to="/" replace />;
   }
 
-  // All React Hooks must be called unconditionally after the initial check
   const [users, setUsers] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
   const [editData, setEditData] = useState({ name: "", email: "", role: "" });
   const [summary, setSummary] = useState({});
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
   const [loadingLogout, setLoadingLogout] = useState(false);
+  const [messages, setMessages] = useState([]); // Contact messages
   const navigate = useNavigate();
 
+  // === USERS FETCH ===
   const fetchUsers = useCallback(() => {
-    const token = localStorage.getItem("token");
     axios
       .get("http://localhost:5000/api/admin/users", {
         headers: { Authorization: `Bearer ${token}` },
@@ -104,27 +103,38 @@ export default function AdminDashboard() {
           navigate("/login");
         }
       });
-  }, [navigate]);
+  }, [navigate, token]);
 
+  // === SUMMARY FETCH ===
   const fetchSummary = useCallback(() => {
-    const token = localStorage.getItem("token");
     axios
       .get("http://localhost:5000/api/admin/summary", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setSummary(res.data))
       .catch((err) => console.error("Failed to fetch summary:", err));
-  }, []);
+  }, [token]);
+
+  // === CONTACT MESSAGES FETCH ===
+  const fetchMessages = useCallback(() => {
+    axios
+      .get("http://localhost:5000/api/contact", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setMessages(res.data))
+      .catch((err) => console.error("Failed to fetch messages:", err));
+  }, [token]);
 
   useEffect(() => {
     fetchUsers();
     fetchSummary();
-  }, [fetchUsers, fetchSummary]);
+    fetchMessages();
+  }, [fetchUsers, fetchSummary, fetchMessages]);
 
+  // === LOGOUT ===
   const handleLogoutClick = () => {
     setOpenLogoutDialog(true);
   };
-
   const confirmLogout = () => {
     setLoadingLogout(true);
     setTimeout(() => {
@@ -135,36 +145,31 @@ export default function AdminDashboard() {
       navigate("/");
     }, 2000);
   };
+  const cancelLogout = () => setOpenLogoutDialog(false);
 
-  const cancelLogout = () => {
-    setOpenLogoutDialog(false);
-  };
-
+  // === USER CRUD ===
   const handleEdit = (user) => {
     setEditingUser(user._id);
     setEditData({ name: user.name, email: user.email, role: user.role });
   };
-
   const handleCancel = () => {
     setEditingUser(null);
     setEditData({ name: "", email: "", role: "" });
   };
-
   const handleSave = async (id) => {
-    const token = localStorage.getItem("token");
     try {
-      await axios.put(`http://localhost:5000/api/admin/users/${id}`, editData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `http://localhost:5000/api/admin/users/${id}`,
+        editData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       fetchUsers();
       setEditingUser(null);
     } catch (err) {
       console.error("Error saving user:", err);
     }
   };
-
   const handleDelete = async (id) => {
-    const token = localStorage.getItem("token");
     try {
       await axios.delete(`http://localhost:5000/api/admin/users/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -175,10 +180,22 @@ export default function AdminDashboard() {
     }
   };
 
+  // === MESSAGE DELETE ===
+  const handleDeleteMessage = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/contact/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchMessages();
+    } catch (err) {
+      console.error("Error deleting message:", err);
+    }
+  };
+
   const admins = users.filter((u) => u.role === "admin");
   const normalUsers = users.filter((u) => u.role === "user");
 
-  const renderTable = (data) => (
+  const renderUserTable = (data) => (
     <Table>
       <TableHead>
         <TableRow>
@@ -257,25 +274,42 @@ export default function AdminDashboard() {
     </Table>
   );
 
+  const renderMessagesTable = () => (
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell>Name</TableCell>
+          <TableCell>Email</TableCell>
+          <TableCell>Message</TableCell>
+          <TableCell>Date</TableCell>
+          <TableCell align="center">Actions</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {messages.map((m) => (
+          <TableRow key={m._id}>
+            <TableCell>{m.name}</TableCell>
+            <TableCell>{m.email}</TableCell>
+            <TableCell>{m.message}</TableCell>
+            <TableCell>{new Date(m.createdAt).toLocaleString()}</TableCell>
+            <TableCell align="center">
+              <IconButton color="error" onClick={() => handleDeleteMessage(m._id)}>
+                <Delete />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
   return (
     <ThemeProvider theme={theme}>
-      <Box
-        sx={{
-          minHeight: "100vh",
-          backgroundColor: theme.palette.background.default,
-        }}
-      >
-        {/* Top Navbar */}
+      <Box sx={{ minHeight: "100vh", backgroundColor: theme.palette.background.default }}>
+        {/* Navbar */}
         <AppBar position="static" color="primary" elevation={0}>
           <Toolbar>
-            <Typography
-              variant="h6"
-              sx={{
-                flexGrow: 1,
-                fontWeight: "bold",
-                color: theme.palette.primary.contrastText,
-              }}
-            >
+            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: "bold", color: "#fff" }}>
               Admin Dashboard
             </Typography>
             <Button
@@ -288,54 +322,52 @@ export default function AdminDashboard() {
             </Button>
           </Toolbar>
         </AppBar>
-        {/*
-          Removed the grid item displaying total admins.
-          The grid container below is also updated to use just one item.
-        */}
+
         <Container sx={{ mt: 6 }}>
+          {/* Summary */}
           <Grid container spacing={4} sx={{ mb: 4 }}>
             <Grid item xs={12}>
-              <Paper
-                sx={{
-                  p: 3,
-                  textAlign: "center",
-                  bgcolor: "primary.light",
-                  color: "primary.contrastText",
-                }}
-              >
+              <Paper sx={{ p: 3, textAlign: "center", bgcolor: "primary.light", color: "white" }}>
                 <Typography variant="h6">Total Users</Typography>
                 <Typography variant="h4">{normalUsers.length}</Typography>
               </Paper>
             </Grid>
           </Grid>
 
+          {/* Admins */}
           <Paper sx={{ mb: 4, overflow: "hidden" }} elevation={2}>
             <Typography variant="h6" sx={{ p: 2, fontWeight: "bold" }}>
               Admins
             </Typography>
             <Divider />
-            {renderTable(admins)}
+            {renderUserTable(admins)}
           </Paper>
 
-          <Paper elevation={2} sx={{ overflow: "hidden" }}>
+          {/* Users */}
+          <Paper sx={{ mb: 4, overflow: "hidden" }} elevation={2}>
             <Typography variant="h6" sx={{ p: 2, fontWeight: "bold" }}>
               Users
             </Typography>
             <Divider />
-            {renderTable(normalUsers)}
+            {renderUserTable(normalUsers)}
+          </Paper>
+
+          {/* Contact Messages */}
+          <Paper elevation={2} sx={{ overflow: "hidden" }}>
+            <Typography variant="h6" sx={{ p: 2, fontWeight: "bold" }}>
+              Contact Messages
+            </Typography>
+            <Divider />
+            {renderMessagesTable()}
           </Paper>
         </Container>
 
+        {/* Logout Dialog */}
         <Dialog open={openLogoutDialog} onClose={cancelLogout}>
           <DialogTitle>Confirm Logout</DialogTitle>
           <DialogContent>
             {loadingLogout ? (
-              <Box
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
-                p={2}
-              >
+              <Box display="flex" justifyContent="center" alignItems="center" p={2}>
                 <CircularProgress />
                 <Typography sx={{ ml: 2 }}>Logging out...</Typography>
               </Box>

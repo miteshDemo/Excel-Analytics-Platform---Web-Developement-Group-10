@@ -1,4 +1,3 @@
-// front-end/SuperAdminDashboard.jsx
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import {
@@ -37,7 +36,6 @@ import {
   Edit,
   Delete,
   Search,
-  Refresh,
   Logout,
   Save,
 } from "@mui/icons-material";
@@ -48,6 +46,7 @@ const customTheme = createTheme({
   palette: {
     primary: { main: "#1976d2" },
     secondary: { main: "#dc004e" },
+    success: { main: "#2e7d32" },
     background: { default: "#f4f6f8", paper: "#ffffff" },
   },
   typography: { fontFamily: "Roboto, sans-serif" },
@@ -175,15 +174,6 @@ const SuperAdminDashboard = () => {
 
   const closeToast = () => setToast((t) => ({ ...t, open: false }));
 
-  const admins = useMemo(
-    () => users.filter((u) => u.role === "admin"),
-    [users]
-  );
-  const normalUsers = useMemo(
-    () => users.filter((u) => u.role === "user"),
-    [users]
-  );
-
   const filtered = useMemo(() => {
     if (!query.trim()) return users;
     const q = query.toLowerCase();
@@ -210,8 +200,9 @@ const SuperAdminDashboard = () => {
     }
     setBusy(true);
     try {
+      // FIX: Changed API endpoint to match the known working registration endpoint
       await API.post(
-        "/api/admin/users",
+        "/api/auth/register",
         {
           name: formData.name,
           email: formData.email,
@@ -319,14 +310,13 @@ const SuperAdminDashboard = () => {
           <TableCell>Name</TableCell>
           <TableCell>Email</TableCell>
           <TableCell>Role</TableCell>
-          <TableCell>Status</TableCell>
           <TableCell align="right">Actions</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
         {data.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={5} align="center">
+            <TableCell colSpan={4} align="center">
               {loadingUsers ? "Loading..." : "No users found"}
             </TableCell>
           </TableRow>
@@ -339,14 +329,13 @@ const SuperAdminDashboard = () => {
                 <Chip
                   label={u.role}
                   size="small"
-                  color={u.role === "admin" ? "primary" : "default"}
-                  variant="outlined"
-                />
-              </TableCell>
-              <TableCell>
-                <Chip
-                  label={u.isLoggedIn ? "Online" : "Offline"}
-                  color={u.isLoggedIn ? "success" : "default"}
+                  color={
+                    u.role === "superadmin"
+                      ? "success"
+                      : u.role === "admin"
+                      ? "primary"
+                      : "default"
+                  }
                   variant="outlined"
                 />
               </TableCell>
@@ -377,15 +366,10 @@ const SuperAdminDashboard = () => {
     <StyledContainer>
       <StyledPaper>
         <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Typography variant="h3" component="h1" gutterBottom color="primary">
+          <Typography sx={{ fontWeight : "bold", fontFamily : "unset"}} variant="h3" component="h1" gutterBottom color="primary">
             Super Admin Dashboard
           </Typography>
           <Box display="flex" gap={1}>
-            <Tooltip title="Refresh">
-              <IconButton onClick={fetchUsers}>
-                <Refresh />
-              </IconButton>
-            </Tooltip>
             <Tooltip title="Logout">
               <IconButton color="error" onClick={handleLogout}>
                 <Logout />
@@ -395,45 +379,15 @@ const SuperAdminDashboard = () => {
         </Box>
 
         <Box my={2}>
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" color="text.secondary" sx={{ fontWeight : "bold", fontFamily : "unset"}}>
             Your hub for complete system control.
           </Typography>
         </Box>
 
-        <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid item xs={12} sm={6}>
-            <Paper
-              sx={{
-                p: 3,
-                textAlign: "center",
-                bgcolor: "primary.light",
-                color: "primary.contrastText",
-                boxShadow: "none",
-              }}
-            >
-              <Typography variant="h6">Total Admins</Typography>
-              <Typography variant="h4">{admins.length}</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Paper
-              sx={{
-                p: 3,
-                textAlign: "center",
-                bgcolor: "primary.light",
-                color: "primary.contrastText",
-                boxShadow: "none",
-              }}
-            >
-              <Typography variant="h6">Total Users</Typography>
-              <Typography variant="h4">{normalUsers.length}</Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-
         <Box mt={4} display="flex" flexDirection="column" gap={2}>
           <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
             <StyledButton
+            sx={{ fontWeight : "bold", fontFamily : "unset"}}
               variant="contained"
               color="primary"
               onClick={handleViewUsers}
@@ -442,6 +396,7 @@ const SuperAdminDashboard = () => {
               View All Users & Admins
             </StyledButton>
             <StyledButton
+            sx={{ fontWeight : "bold", fontFamily : "unset"}}
               variant="contained"
               color="success"
               onClick={openCreate}
@@ -450,6 +405,7 @@ const SuperAdminDashboard = () => {
               Create New User/Admin
             </StyledButton>
             <StyledButton
+            sx={{ fontWeight : "bold", fontFamily : "unset"}}
               variant="contained"
               color="secondary"
               onClick={handleLogout}
@@ -478,6 +434,7 @@ const SuperAdminDashboard = () => {
           <Box display="flex" alignItems="center" gap={2}>
             All Users ({users.length})
             <TextField
+              autoFocus
               size="small"
               placeholder="Search name, email or role"
               value={query}
@@ -516,6 +473,7 @@ const SuperAdminDashboard = () => {
         <DialogTitle>Create New User/Admin</DialogTitle>
         <DialogContent dividers>
           <TextField
+            autoFocus
             fullWidth
             margin="normal"
             label="Name"
@@ -555,6 +513,7 @@ const SuperAdminDashboard = () => {
           >
             <MenuItem value="user">User</MenuItem>
             <MenuItem value="admin">Admin</MenuItem>
+            <MenuItem value="superadmin">Super Admin</MenuItem>
           </TextField>
         </DialogContent>
         <DialogActions>
@@ -586,6 +545,7 @@ const SuperAdminDashboard = () => {
         <DialogTitle>Edit User</DialogTitle>
         <DialogContent dividers>
           <TextField
+            autoFocus
             fullWidth
             margin="normal"
             label="Name"
@@ -615,6 +575,7 @@ const SuperAdminDashboard = () => {
           >
             <MenuItem value="user">User</MenuItem>
             <MenuItem value="admin">Admin</MenuItem>
+            <MenuItem value="superadmin">Super Admin</MenuItem>
           </TextField>
           <TextField
             fullWidth
@@ -664,6 +625,7 @@ const SuperAdminDashboard = () => {
         </DialogContent>
         <DialogActions>
           <Button
+            autoFocus
             onClick={() => setOpenDeleteDialog(false)}
             disabled={busy}
             startIcon={<Close />}

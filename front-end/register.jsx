@@ -95,6 +95,9 @@ export default function RegistrationForm() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleClose = () => setOpen(false);
+  const handleBackToHome = () => {
+    navigate("/");
+  };
 
   const formik = useFormik({
     initialValues: {
@@ -234,6 +237,20 @@ export default function RegistrationForm() {
                 </Grid>
               </Grid>
             </form>
+            <Box mt={2} textAlign="center">
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleBackToHome}
+                sx={{
+                  fontWeight: "bold",
+                  borderRadius: 20,
+                  textTransform: "none",
+                }}
+              >
+                Back to Home
+              </Button>
+            </Box>
           </Box>
         </Container>
 

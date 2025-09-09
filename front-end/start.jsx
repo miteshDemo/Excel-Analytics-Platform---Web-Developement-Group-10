@@ -14,7 +14,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Avatar,
+  IconButton,
 } from "@mui/material";
+import PersonIcon from "@mui/icons-material/Person";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
@@ -50,30 +53,43 @@ const facilities = [
 
 const StartPage = () => {
   const navigate = useNavigate();
-  // Using useRef to create references for scrolling to specific sections
   const facilitiesRef = useRef(null);
   const contactRef = useRef(null);
   const aboutRef = useRef(null);
 
-  // State to manage the contact form data
+  // Read user info from localStorage
+  const storedUser = JSON.parse(localStorage.getItem("user"));
+  const isLoggedIn = !!storedUser;
+  const userRole = storedUser?.role || "user";
+
+  // Contact form state
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     message: "",
   });
-  // State for form validation errors
   const [errors, setErrors] = useState({});
-  // State to manage the custom success/error dialog
   const [dialogState, setDialogState] = useState({
     isOpen: false,
     title: "",
     message: "",
   });
 
-  // Function to navigate to the registration page
+  // Navigate to Register
   const handleEnterClick = () => navigate("/register");
 
-  // Functions to scroll smoothly to different sections of the page
+  // Navigate based on role
+  const handleGoToDashboard = () => {
+    if (userRole === "superadmin") {
+      navigate("/superadmin/dashboard");
+    } else if (userRole === "admin") {
+      navigate("/admin/dashboard");
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
+  // Smooth scrolling
   const scrollToFacilities = () =>
     facilitiesRef.current?.scrollIntoView({ behavior: "smooth" });
   const scrollToContact = () =>
@@ -81,7 +97,6 @@ const StartPage = () => {
   const scrollToAbout = () =>
     aboutRef.current?.scrollIntoView({ behavior: "smooth" });
 
-  // A mapping to simplify navigation handlers in the navbar
   const navHandlers = {
     Home: () => window.scrollTo({ top: 0, behavior: "smooth" }),
     Facilities: scrollToFacilities,
@@ -89,18 +104,20 @@ const StartPage = () => {
     About: scrollToAbout,
   };
 
-  // Handle changes to form input fields
+  const navLabels = isLoggedIn
+    ? ["Home", "Facilities", "About"]
+    : ["Home", "Facilities", "Contact", "About"];
+
+  // Form functions
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  // Close the custom dialog
   const handleCloseDialog = () => {
     setDialogState((prevState) => ({ ...prevState, isOpen: false }));
   };
 
-  // Validate the form data before submission
   const validateForm = () => {
     let newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
@@ -114,16 +131,14 @@ const StartPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
       try {
-        // Send a POST request to the API
         const response = await axios.post("http://localhost:5000/api/contact", {
           name: formData.name,
           email: formData.email,
-          subject: "Contact Form Submission", // Added a subject field
+          subject: "Contact Form Submission",
           message: formData.message,
         });
 
@@ -163,7 +178,7 @@ const StartPage = () => {
         backgroundColor: "#f5f5f5",
       }}
     >
-      {/* Top Navbar */}
+      {/* Navbar */}
       <AppBar
         position="fixed"
         sx={{
@@ -187,13 +202,12 @@ const StartPage = () => {
             </Typography>
           </Box>
 
-          {["Home", "Facilities", "Contact", "About"].map((label, i) => (
+          {navLabels.map((label, i) => (
             <Button
               key={i}
               onClick={navHandlers[label]}
               sx={{
                 fontWeight: "bold",
-                fontFamily: "unset",
                 position: "relative",
                 "&::after": {
                   content: '""',
@@ -211,18 +225,45 @@ const StartPage = () => {
               {label}
             </Button>
           ))}
-          <Button
-            variant="contained"
-            color="primary"
-            sx={{ fontWeight: "bold", fontFamily: "unset" }}
-            onClick={() => navigate("/register")}
-          >
-            Get Started / Login
-          </Button>
+
+          {isLoggedIn ? (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                ml: 2,
+                fontFamily: "unset",
+                fontWeight: "bold",
+              }}
+            >
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ fontWeight: "bold", mr: 2 }}
+                onClick={handleGoToDashboard}
+              >
+                Go to Dashboard
+              </Button>
+              <IconButton color="primary" sx={{ p: 0 }}>
+                <Avatar>
+                  <PersonIcon />
+                </Avatar>
+              </IconButton>
+            </Box>
+          ) : (
+            <Button
+              variant="contained"
+              color="primary"
+              sx={{ fontWeight: "bold" }}
+              onClick={handleEnterClick}
+            >
+              Get Started / Login
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
 
-      {/* Main Hero Section */}
+      {/* Hero Section */}
       <Box
         sx={{
           position: "absolute",
@@ -252,42 +293,40 @@ const StartPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
           >
-            <Typography
-              variant="h3"
-              fontWeight="bold"
-              fontFamily="unset"
-              color="white"
-            >
+            <Typography variant="h3" fontWeight="bold" color="white">
               Welcome to Excel Analytics Platform
             </Typography>
-            <Typography
-              variant="body1"
-              maxWidth="sm"
-              color="#f0f0f0"
-              sx={{ mt: 1 }}
-            >
+            <Typography variant="body1" color="#f0f0f0" sx={{ mt: 1 }}>
               Upload your Excel files, analyze data with powerful 2D/3D
               visualizations, and gain insights — all in one place.
             </Typography>
           </motion.div>
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            onClick={handleEnterClick}
-            sx={{
-              mt: 2,
-              px: 4,
-              fontFamily: "unset",
-              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-            }}
-          >
-            Get Started
-          </Button>
+
+          {isLoggedIn ? (
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              onClick={handleGoToDashboard}
+              sx={{ mt: 2, px: 4, boxShadow: "0 4px 10px rgba(0,0,0,0.2)" }}
+            >
+              Go to Dashboard
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              onClick={handleEnterClick}
+              sx={{ mt: 2, px: 4, boxShadow: "0 4px 10px rgba(0,0,0,0.2)" }}
+            >
+              Get Started
+            </Button>
+          )}
         </Stack>
       </Container>
 
-      {/* Facilities Section */}
+      {/* Facilities */}
       <Container
         ref={facilitiesRef}
         maxWidth="lg"
@@ -297,7 +336,7 @@ const StartPage = () => {
           variant="h4"
           fontWeight="bold"
           align="center"
-          sx={{ mb: 4, fontFamily: "unset" }}
+          sx={{ mb: 4 }}
         >
           Platform Facilities
         </Typography>
@@ -346,74 +385,71 @@ const StartPage = () => {
         </Grid>
       </Container>
 
-      {/* Contact Section */}
-      <Container ref={contactRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Paper
-            elevation={6}
-            sx={{ p: 4, borderRadius: 3, textAlign: "center" }}
+      {/* Contact Section (only for guests) */}
+      {!isLoggedIn && (
+        <Container ref={contactRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <Typography
-              variant="h4"
-              fontWeight="bold"
-              fontFamily="unset"
-              gutterBottom
+            <Paper
+              elevation={6}
+              sx={{ p: 4, borderRadius: 3, textAlign: "center" }}
             >
-              Quick Contact
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 3 }}>
-              Have questions? Send us a message and we'll get back to you.
-            </Typography>
-            <form onSubmit={handleSubmit}>
-              <Stack spacing={2}>
-                <TextField
-                  label="Name"
-                  fullWidth
-                  name="name"
-                  value={formData.name}
-                  onChange={handleFormChange}
-                  error={!!errors.name}
-                  helperText={errors.name}
-                />
-                <TextField
-                  label="Email"
-                  fullWidth
-                  name="email"
-                  value={formData.email}
-                  onChange={handleFormChange}
-                  error={!!errors.email}
-                  helperText={errors.email}
-                />
-                <TextField
-                  label="Message"
-                  fullWidth
-                  name="message"
-                  multiline
-                  rows={4}
-                  value={formData.message}
-                  onChange={handleFormChange}
-                  error={!!errors.message}
-                  helperText={errors.message}
-                />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="large"
-                  sx={{ py: 1.5, fontWeight: "bold" }}
-                >
-                  Send Message
-                </Button>
-              </Stack>
-            </form>
-          </Paper>
-        </motion.div>
-      </Container>
+              <Typography variant="h4" fontWeight="bold" gutterBottom>
+                Quick Contact
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 3 }}>
+                Have questions? Send us a message and we'll get back to you.
+              </Typography>
+              <form onSubmit={handleSubmit}>
+                <Stack spacing={2}>
+                  <TextField
+                    label="Name"
+                    fullWidth
+                    name="name"
+                    value={formData.name}
+                    onChange={handleFormChange}
+                    error={!!errors.name}
+                    helperText={errors.name}
+                  />
+                  <TextField
+                    label="Email"
+                    fullWidth
+                    name="email"
+                    value={formData.email}
+                    onChange={handleFormChange}
+                    error={!!errors.email}
+                    helperText={errors.email}
+                  />
+                  <TextField
+                    label="Message"
+                    fullWidth
+                    name="message"
+                    multiline
+                    rows={4}
+                    value={formData.message}
+                    onChange={handleFormChange}
+                    error={!!errors.message}
+                    helperText={errors.message}
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    sx={{ py: 1.5, fontWeight: "bold" }}
+                  >
+                    Send Message
+                  </Button>
+                </Stack>
+              </form>
+            </Paper>
+          </motion.div>
+        </Container>
+      )}
 
-      {/* About Section */}
+      {/* About */}
       <Container ref={aboutRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -440,7 +476,7 @@ const StartPage = () => {
         </motion.div>
       </Container>
 
-      {/* Custom Message Dialog */}
+      {/* Custom Dialog */}
       <Dialog open={dialogState.isOpen} onClose={handleCloseDialog}>
         <DialogTitle>{dialogState.title}</DialogTitle>
         <DialogContent>

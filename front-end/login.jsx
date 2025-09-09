@@ -84,6 +84,10 @@ export default function LoginForm() {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  const handleBackToHome = () => {
+    navigate("/");
+  };
+
   const formik = useFormik({
     initialValues: { email: "", password: "" },
     validationSchema,
@@ -265,6 +269,20 @@ export default function LoginForm() {
                 )}
               </Grid>
             </form>
+            <Box mt={2} textAlign="center">
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleBackToHome}
+                sx={{
+                  fontWeight: "bold",
+                  borderRadius: 20,
+                  textTransform: "none",
+                }}
+              >
+                Back to Home
+              </Button>
+            </Box>
           </Box>
         </Container>
 
