@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  TextField,
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
@@ -32,6 +33,10 @@ import DownloadIcon from "@mui/icons-material/Download";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import CloseIcon from "@mui/icons-material/Close";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import ImageIcon from "@mui/icons-material/Image";
+import SettingsIcon from "@mui/icons-material/Settings";
+import EditIcon from "@mui/icons-material/Edit";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -45,7 +50,8 @@ import { Bar } from "react-chartjs-2";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
-import { OpenAI } from "openai/client.js";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 ChartJS.register(
   CategoryScale,
@@ -69,7 +75,6 @@ function Bar3D({ position, height, color }) {
       }
 
       ref.current.scale.set(1, currentHeight / 10, 1);
-
       ref.current.position.set(
         position[0],
         currentHeight / 10 / 2,
@@ -156,6 +161,26 @@ export default function App() {
   const [summaryContent, setSummaryContent] = useState("");
   const [summarizeLoading, setSummarizeLoading] = useState(false);
 
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [apiKey, setApiKey] = useState(
+    ""
+  );
+
+  const [avatarEditOpen, setAvatarEditOpen] = useState(false);
+  const [avatarOptions] = useState([
+    { color: "#4caf50", emoji: "😊" },
+    { color: "#2196f3", emoji: "🚀" },
+    { color: "#ff9800", emoji: "⭐" },
+    { color: "#9c27b0", emoji: "💼" },
+    { color: "#f44336", emoji: "🔥" },
+    { color: "#009688", emoji: "🌐" },
+  ]);
+  const [selectedAvatar, setSelectedAvatar] = useState({ color: "#4caf50", emoji: "😊" });
+
+  // Refs for chart elements to capture
+  const chart2DRef = useRef(null);
+  const chart3DRef = useRef(null);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -165,6 +190,18 @@ export default function App() {
     setUserName(localStorage.getItem("name") || "John Doe");
     setUserEmail(localStorage.getItem("email") || "john.doe@example.com");
     setUserRole(localStorage.getItem("role") || "user");
+
+    // Load avatar from localStorage if exists
+    const savedAvatar = localStorage.getItem("userAvatar");
+    if (savedAvatar) {
+      setSelectedAvatar(JSON.parse(savedAvatar));
+    }
+
+    // Load API key from localStorage if exists
+    const savedApiKey = localStorage.getItem("openai_api_key");
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
 
     const fetchFilesAndHistory = async () => {
       try {
@@ -322,129 +359,21 @@ export default function App() {
 
   const handleAnalyzeFile = async (file) => {
     setAnalysisLoading(true);
-    const prompt = `Generate JSON data for a bar chart with 5 categories and corresponding values. The values should be integers between 10 and 100. The JSON structure should be an array of objects, with each object having 'category' (string) and 'value' (number) keys.`;
-
-    const payload = {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "ARRAY",
-          items: {
-            type: "OBJECT",
-            properties: {
-              category: { type: "STRING" },
-              value: { type: "NUMBER" },
-            },
-            propertyOrdering: ["category", "value"],
-          },
-        },
-      },
-    };
-
-    const apiKey = "";
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-    let data;
-    let retries = 0;
-    const maxRetries = 5;
-    const baseDelay = 1000;
-
-    while (retries < maxRetries) {
-      try {
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (jsonText) {
-            data = JSON.parse(jsonText);
-            break;
-          } else {
-            throw new Error("Invalid response from API");
-          }
-        } else {
-          if (response.status === 429) {
-            const delay = baseDelay * Math.pow(2, retries);
-            console.warn(`Retrying in ${delay}ms...`);
-            await new Promise((resolve) => setTimeout(resolve, delay));
-            retries++;
-          } else {
-            throw new Error(`API returned status code: ${response.status}`);
-          }
-        }
-      } catch (err) {
-        console.error("API call failed:", err);
-        const delay = baseDelay * Math.pow(2, retries);
-        console.warn(`Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        retries++;
-      }
-    }
-    setAnalysisLoading(false);
-
-    if (data && data.length > 0) {
-      setSelectedFileData(data);
-      setXAxis(Object.keys(data[0])[0]);
-      setYAxis(Object.keys(data[0])[1]);
-      setChartOpen(true);
-
-      const analysis = {
-        file: file.name,
-        date: new Date().toLocaleString(),
-        type: "AI-Powered Analysis",
-      };
-      setHistory((prev) => [...prev, analysis]);
-      setNotification({
-        open: true,
-        message: `Analysis completed for ${file.name}`,
-        severity: "info",
-      });
-    } else {
-      data = [
-        { category: "A", value: Math.floor(Math.random() * 90) + 10 },
-        { category: "B", value: Math.floor(Math.random() * 90) + 10 },
-        { category: "C", value: Math.floor(Math.random() * 90) + 10 },
-        { category: "D", value: Math.floor(Math.random() * 90) + 10 },
-        { category: "E", value: Math.floor(Math.random() * 90) + 10 },
-      ];
-      setSelectedFileData(data);
-      setXAxis(Object.keys(data[0])[0]);
-      setYAxis(Object.keys(data[0])[1]);
-      setChartOpen(true);
-      const analysis = {
-        file: file.name,
-        date: new Date().toLocaleString(),
-        type: "AI-Powered Analysis (Using Mock Data)",
-      };
-      setHistory((prev) => [...prev, analysis]);
-      setNotification({
-        open: true,
-        message:
-          "Failed to generate AI analysis after multiple retries, using mock data.",
-        severity: "error",
-      });
-    }
-  };
-
-  const handleSummarizeFile = async (file) => {
-    setSummarizeLoading(true);
-
-    const OPENAI_API_KEY = "";
-    const API_URL = "https://api.openai.com/v1/chat/completions";
-
-    const prompt = `Please provide a concise summary of the file named "${file.name}". The content is currently simulated. In a real application, you would summarize the actual file content.`;
 
     try {
+      // For analysis, we'll use OpenAI to generate chart data
+      const OPENAI_API_KEY = apiKey;
+      const API_URL = "https://api.openai.com/v1/chat/completions";
+
+      const prompt = `Generate JSON data for a bar chart analysis of a file named "${file.name}". 
+      Create 5-7 categories with relevant values. Return ONLY valid JSON in this format:
+      [
+        {"category": "Category1", "value": 85},
+        {"category": "Category2", "value": 45},
+        ...
+      ]
+      Make the categories relevant to file analysis (like: Data Quality, Completeness, Accuracy, etc.)`;
+
       const response = await fetch(API_URL, {
         method: "POST",
         headers: {
@@ -456,21 +385,173 @@ export default function App() {
           messages: [
             {
               role: "system",
-              content: "You are a helpful assistant that summarizes documents.",
+              content:
+                "You are a data analysis assistant. Generate only valid JSON output for chart data.",
             },
             {
               role: "user",
               content: prompt,
             },
           ],
-          max_tokens: 150,
+          max_tokens: 500,
           temperature: 0.7,
         }),
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
         throw new Error(
-          `OpenAI API call failed with status: ${response.status}`
+          `OpenAI API error: ${errorData.error?.message || response.status}`
+        );
+      }
+
+      const result = await response.json();
+      const jsonText = result.choices[0].message.content.trim();
+
+      // Clean and parse the JSON response
+      const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        throw new Error("Invalid JSON response from AI");
+      }
+
+      const data = JSON.parse(jsonMatch[0]);
+
+      if (data && data.length > 0) {
+        setSelectedFileData(data);
+        setXAxis("category");
+        setYAxis("value");
+        setChartOpen(true);
+
+        const analysis = {
+          file: file.name,
+          date: new Date().toLocaleString(),
+          type: "AI-Powered Analysis",
+        };
+        setHistory((prev) => [...prev, analysis]);
+
+        setNotification({
+          open: true,
+          message: `AI analysis completed for ${file.name}`,
+          severity: "success",
+        });
+      } else {
+        throw new Error("No data received from AI");
+      }
+    } catch (err) {
+      console.error("AI Analysis failed:", err);
+
+      // Fallback to mock data
+      const mockData = [
+        {
+          category: "Data Quality",
+          value: Math.floor(Math.random() * 90) + 10,
+        },
+        {
+          category: "Completeness",
+          value: Math.floor(Math.random() * 90) + 10,
+        },
+        { category: "Accuracy", value: Math.floor(Math.random() * 90) + 10 },
+        { category: "Consistency", value: Math.floor(Math.random() * 90) + 10 },
+        { category: "Relevance", value: Math.floor(Math.random() * 90) + 10 },
+      ];
+
+      setSelectedFileData(mockData);
+      setXAxis("category");
+      setYAxis("value");
+      setChartOpen(true);
+
+      const analysis = {
+        file: file.name,
+        date: new Date().toLocaleString(),
+        type: "Analysis (Using Demo Data)",
+      };
+      setHistory((prev) => [...prev, analysis]);
+
+      setNotification({
+        open: true,
+        message: "Using demo data for analysis",
+        severity: "info",
+      });
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
+  const handleSummarizeFile = async (file) => {
+    setSummarizeLoading(true);
+
+    try {
+      const OPENAI_API_KEY = apiKey;
+      const API_URL = "https://api.openai.com/v1/chat/completions";
+
+      // In a real application, you would read the actual file content here
+      // For this demo, we'll simulate file content based on file type
+      const fileExtension = file.name.split(".").pop().toLowerCase();
+      let simulatedContent = "";
+
+      switch (fileExtension) {
+        case "pdf":
+          simulatedContent =
+            "This PDF document contains important business reports and financial data spanning multiple quarters.";
+          break;
+        case "doc":
+        case "docx":
+          simulatedContent =
+            "This Word document includes detailed project documentation, meeting notes, and strategic plans.";
+          break;
+        case "xls":
+        case "xlsx":
+          simulatedContent =
+            "This spreadsheet contains financial data, sales figures, and analytical calculations with multiple worksheets.";
+          break;
+        case "csv":
+          simulatedContent =
+            "This CSV file includes structured data with multiple columns containing customer information and transaction records.";
+          break;
+        default:
+          simulatedContent =
+            "This file contains various types of data and information relevant to business operations and analysis.";
+      }
+
+      const prompt = `Please provide a comprehensive yet concise summary of the following file content. 
+      The file is named "${file.name}" and appears to contain: ${simulatedContent}
+      
+      Provide a professional summary that includes:
+      1. Main topics or themes
+      2. Key findings or data points
+      3. Potential insights or recommendations
+      4. Overall assessment
+      
+      Keep the summary under 300 words and make it useful for business analysis.`;
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a professional document analysis assistant. Provide clear, concise, and insightful summaries.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          max_tokens: 500,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `OpenAI API error: ${errorData.error?.message || response.status}`
         );
       }
 
@@ -483,32 +564,145 @@ export default function App() {
       const newHistory = {
         file: file.name,
         date: new Date().toLocaleString(),
-        type: "OpenAI Summary",
+        type: "AI Summary",
       };
       setHistory((prev) => [...prev, newHistory]);
 
       setNotification({
         open: true,
-        message: `Summary generated for ${file.name}`,
+        message: `AI summary generated for ${file.name}`,
         severity: "success",
       });
     } catch (err) {
       console.error("Error generating summary:", err);
+
+      // Fallback summary
       setSummaryContent(
-        "Failed to generate a summary. Please check your API key and try again."
+        `Summary for: ${file.name}
+
+This file appears to be a ${file.name
+          .split(".")
+          .pop()
+          .toUpperCase()} document containing valuable business data.
+While we couldn't generate a full AI-powered summary due to technical constraints, this file likely contains:
+
+• Structured data and information
+• Potential insights for business analysis
+• Opportunities for further examination
+
+To get a complete AI-powered summary, please ensure your API key is valid and has sufficient credits.`
       );
       setSummaryOpen(true);
+
       setNotification({
         open: true,
-        message: "Summary generation failed.",
-        severity: "error",
+        message: "Summary generated with limited features",
+        severity: "warning",
       });
     } finally {
       setSummarizeLoading(false);
     }
   };
 
-  const chartColors = ["#4caf50", "#8bc34a", "#aed581", "#66bb6a", "#c8e6c9"];
+  const downloadChartAsPNG = async (chartRef, fileName) => {
+    if (!chartRef.current) return;
+
+    try {
+      const canvas = await html2canvas(chartRef.current);
+      const image = canvas.toDataURL("image/png");
+
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = `${fileName}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setNotification({
+        open: true,
+        message: `${fileName} downloaded as PNG`,
+        severity: "success",
+      });
+    } catch (error) {
+      console.error("Error downloading chart as PNG:", error);
+      setNotification({
+        open: true,
+        message: "Failed to download chart as PNG",
+        severity: "error",
+      });
+    }
+  };
+
+  const downloadChartAsPDF = async (chartRef, fileName) => {
+    if (!chartRef.current) return;
+
+    try {
+      const canvas = await html2canvas(chartRef.current);
+      const imgData = canvas.toDataURL("image/png");
+
+      const pdf = new jsPDF("landscape", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 30;
+
+      pdf.addImage(
+        imgData,
+        "PNG",
+        imgX,
+        imgY,
+        imgWidth * ratio,
+        imgHeight * ratio
+      );
+      pdf.save(`${fileName}.pdf`);
+
+      setNotification({
+        open: true,
+        message: `${fileName} downloaded as PDF`,
+        severity: "success",
+      });
+    } catch (error) {
+      console.error("Error downloading chart as PDF:", error);
+      setNotification({
+        open: true,
+        message: "Failed to download chart as PDF",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleSaveApiKey = () => {
+    localStorage.setItem("openai_api_key", apiKey);
+    setSettingsOpen(false);
+    setNotification({
+      open: true,
+      message: "API key saved successfully",
+      severity: "success",
+    });
+  };
+
+  const handleSaveAvatar = () => {
+    localStorage.setItem("userAvatar", JSON.stringify(selectedAvatar));
+    setAvatarEditOpen(false);
+    setNotification({
+      open: true,
+      message: "Avatar updated successfully",
+      severity: "success",
+    });
+  };
+
+  const chartColors = [
+    "#4caf50",
+    "#8bc34a",
+    "#aed581",
+    "#66bb6a",
+    "#c8e6c9",
+    "#81c784",
+    "#a5d6a7",
+  ];
 
   return (
     <Fade in={!fadeOut} timeout={800}>
@@ -522,8 +716,8 @@ export default function App() {
               Data Analytics Dashboard
             </Typography>
             <IconButton onClick={handleAvatarClick} color="inherit">
-              <Avatar sx={{ bgcolor: "white", color: "#4caf50" }}>
-                {getInitials(userName) || <PersonIcon />}
+              <Avatar sx={{ bgcolor: selectedAvatar.color, color: "white", fontSize: "1.2rem" }}>
+                {selectedAvatar.emoji}
               </Avatar>
             </IconButton>
           </Toolbar>
@@ -540,7 +734,7 @@ export default function App() {
           <Box sx={{ textAlign: "center" }}>
             <Avatar
               sx={{
-                bgcolor: "#4caf50",
+                bgcolor: selectedAvatar.color,
                 width: 60,
                 height: 60,
                 fontSize: "1.5rem",
@@ -548,7 +742,7 @@ export default function App() {
                 mb: 1,
               }}
             >
-              {getInitials(userName)}
+              {selectedAvatar.emoji}
             </Avatar>
             <Typography
               sx={{ fontWeight: "bold", fontFamily: "unset" }}
@@ -578,6 +772,26 @@ export default function App() {
               </Typography>
             )}
             <Divider sx={{ my: 1.5 }} />
+            <Button
+              sx={{ fontWeight: "bold", fontFamily: "unset", mb: 1 }}
+              variant="outlined"
+              color="primary"
+              startIcon={<EditIcon />}
+              onClick={() => setAvatarEditOpen(true)}
+              fullWidth
+            >
+              Change Avatar
+            </Button>
+            <Button
+              sx={{ fontWeight: "bold", fontFamily: "unset", mb: 1 }}
+              variant="outlined"
+              color="info"
+              startIcon={<SettingsIcon />}
+              onClick={() => setSettingsOpen(true)}
+              fullWidth
+            >
+              API Settings
+            </Button>
             <Button
               sx={{ fontWeight: "bold", fontFamily: "unset" }}
               variant="contained"
@@ -609,13 +823,39 @@ export default function App() {
             </Box>
           )}
 
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: "bold", fontFamily: "unset" }}
-            gutterBottom
+          <Box
+            sx={{
+              textAlign: "center",
+              mb: 4,
+              background: "linear-gradient(135deg, #4caf50 0%, #2196f3 100%)",
+              borderRadius: 3,
+              p: 3,
+              color: "white",
+              boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
+            }}
           >
-            Welcome, {userName || "User"}!
-          </Typography>
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: "bold",
+                fontFamily: "'Roboto', sans-serif",
+                textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
+                mb: 1,
+              }}
+            >
+              Welcome, {userName || "User"}! 👋
+            </Typography>
+            <Typography
+              variant="h6"
+              sx={{
+                fontFamily: "'Roboto', sans-serif",
+                opacity: 0.9,
+                textShadow: "1px 1px 2px rgba(0,0,0,0.3)",
+              }}
+            >
+              Ready to analyze your data and gain valuable insights?
+            </Typography>
+          </Box>
 
           <Paper
             sx={{
@@ -772,7 +1012,7 @@ export default function App() {
                           <Button
                             size="small"
                             variant="outlined"
-                            color="success"
+                            color="info"
                             sx={{
                               mr: 1,
                               fontWeight: "bold",
@@ -882,7 +1122,7 @@ export default function App() {
                 </FormControl>
               </Box>
 
-              <Box sx={{ mb: 3 }}>
+              <Box sx={{ mb: 3 }} ref={chart2DRef}>
                 <Bar
                   data={{
                     labels: selectedFileData.map((d) => d[xAxis]),
@@ -904,7 +1144,7 @@ export default function App() {
                       legend: { position: "top" },
                       title: {
                         display: true,
-                        text: `2D Analysis of ${xAxis.toUpperCase()} vs ${yAxis.toUpperCase()}`,
+                        text: `Analysis of ${xAxis.toUpperCase()} vs ${yAxis.toUpperCase()}`,
                       },
                     },
                   }}
@@ -919,6 +1159,7 @@ export default function App() {
                   overflow: "hidden",
                   border: "1px solid #e0e0e0",
                 }}
+                ref={chart3DRef}
               >
                 <Canvas
                   camera={{ position: [0, 20, 40], fov: 60 }}
@@ -957,6 +1198,48 @@ export default function App() {
 
                   <OrbitControls />
                 </Canvas>
+              </Box>
+
+              <Box sx={{ mt: 3, display: "flex", gap: 2, flexWrap: "wrap" }}>
+                <Typography variant="h6" sx={{ width: "100%", mb: 1 }}>
+                  Download Charts:
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<ImageIcon />}
+                  onClick={() => downloadChartAsPNG(chart2DRef, "2D_Chart")}
+                  sx={{ fontWeight: "bold", fontFamily: "unset" }}
+                >
+                  Download 2D Chart (PNG)
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<PictureAsPdfIcon />}
+                  onClick={() => downloadChartAsPDF(chart2DRef, "2D_Chart")}
+                  sx={{ fontWeight: "bold", fontFamily: "unset" }}
+                >
+                  Download 2D Chart (PDF)
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<ImageIcon />}
+                  onClick={() => downloadChartAsPNG(chart3DRef, "3D_Chart")}
+                  sx={{ fontWeight: "bold", fontFamily: "unset" }}
+                >
+                  Download 3D Chart (PNG)
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<PictureAsPdfIcon />}
+                  onClick={() => downloadChartAsPDF(chart3DRef, "3D_Chart")}
+                  sx={{ fontWeight: "bold", fontFamily: "unset" }}
+                >
+                  Download 3D Chart (PDF)
+                </Button>
               </Box>
 
               <Button
@@ -1045,7 +1328,7 @@ export default function App() {
           open={summaryOpen}
           onClose={() => setSummaryOpen(false)}
           fullWidth
-          maxWidth="sm"
+          maxWidth="md"
         >
           <DialogTitle sx={{ m: 0, p: 2 }}>
             <Box
@@ -1067,7 +1350,11 @@ export default function App() {
           <DialogContent dividers>
             <Typography
               variant="body1"
-              sx={{ whiteSpace: "pre-wrap", fontFamily: "unset" }}
+              sx={{
+                whiteSpace: "pre-wrap",
+                fontFamily: "unset",
+                lineHeight: 1.6,
+              }}
             >
               {summaryContent}
             </Typography>
@@ -1079,6 +1366,120 @@ export default function App() {
               sx={{ fontFamily: "unset", fontWeight: "bold" }}
             >
               Close
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle sx={{ m: 0, p: 2 }}>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: "bold", color: "#4caf50" }}
+              >
+                <SettingsIcon sx={{ mr: 1 }} /> API Settings
+              </Typography>
+              <IconButton onClick={() => setSettingsOpen(false)}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          <DialogContent dividers>
+            <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
+              Configure your OpenAI API key for AI-powered analysis and
+              summarization features.
+            </Typography>
+            <TextField
+              fullWidth
+              label="OpenAI API Key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              margin="normal"
+              type="password"
+              helperText="Your API key is stored locally in your browser"
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setSettingsOpen(false)} color="inherit">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveApiKey}
+              color="success"
+              variant="contained"
+            >
+              Save API Key
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog
+          open={avatarEditOpen}
+          onClose={() => setAvatarEditOpen(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle sx={{ m: 0, p: 2 }}>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: "bold", color: "#4caf50" }}
+              >
+                <EditIcon sx={{ mr: 1 }} /> Change Avatar
+              </Typography>
+              <IconButton onClick={() => setAvatarEditOpen(false)}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          <DialogContent dividers>
+            <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
+              Select your preferred avatar style:
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "center" }}>
+              {avatarOptions.map((avatar, index) => (
+                <Avatar
+                  key={index}
+                  sx={{
+                    bgcolor: avatar.color,
+                    width: 60,
+                    height: 60,
+                    fontSize: "1.5rem",
+                    cursor: "pointer",
+                    border: selectedAvatar.emoji === avatar.emoji ? "3px solid #4caf50" : "none",
+                    transform: selectedAvatar.emoji === avatar.emoji ? "scale(1.1)" : "scale(1)",
+                    transition: "all 0.2s ease",
+                  }}
+                  onClick={() => setSelectedAvatar(avatar)}
+                >
+                  {avatar.emoji}
+                </Avatar>
+              ))}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAvatarEditOpen(false)} color="inherit">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveAvatar}
+              color="success"
+              variant="contained"
+            >
+              Save Avatar
             </Button>
           </DialogActions>
         </Dialog>
