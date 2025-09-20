@@ -15,39 +15,43 @@ import {
   DialogContent,
   DialogActions,
   Avatar,
-  IconButton,
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import HistoryIcon from "@mui/icons-material/History";
+import DownloadIcon from "@mui/icons-material/Download";
+import AutoGraphIcon from "@mui/icons-material/AutoGraph";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
 
-// Data for the platform's facilities section
+// Facility data with icons
 const facilities = [
   {
     title: "Excel File Upload",
-    description: "Easily upload .xls or .xlsx files for analysis.",
-    direction: "left",
+    description: "Upload your Excel files with just a click.",
+    icon: <CloudUploadIcon fontSize="large" color="primary" />,
   },
   {
     title: "2D & 3D Charts",
-    description: "Visualize your data in interactive 2D and 3D graphs.",
-    direction: "right",
+    description: "Visualize insights in stunning 2D & 3D charts.",
+    icon: <BarChartIcon fontSize="large" color="secondary" />,
   },
   {
     title: "Dynamic Axis Selection",
-    description: "Choose which columns to map to chart axes.",
-    direction: "left",
+    description: "Select columns dynamically to map on chart axes.",
+    icon: <AutoGraphIcon fontSize="large" color="success" />,
   },
   {
     title: "Downloadable Reports",
-    description: "Export analysis results as images or reports.",
-    direction: "right",
+    description: "Export and download your analysis reports instantly.",
+    icon: <DownloadIcon fontSize="large" color="warning" />,
   },
   {
     title: "Analysis History",
-    description: "Access your past uploads and analysis anytime.",
-    direction: "left",
+    description: "Access your entire analysis history anytime.",
+    icon: <HistoryIcon fontSize="large" color="error" />,
   },
 ];
 
@@ -57,7 +61,7 @@ const StartPage = () => {
   const contactRef = useRef(null);
   const aboutRef = useRef(null);
 
-  // Read user info from localStorage
+  // Read user info
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const isLoggedIn = !!storedUser;
   const userRole = storedUser?.role || "user";
@@ -75,57 +79,31 @@ const StartPage = () => {
     message: "",
   });
 
-  // Navigate to Register
   const handleEnterClick = () => navigate("/register");
 
-  // Navigate based on role
   const handleGoToDashboard = () => {
-    if (userRole === "superadmin") {
-      navigate("/superadmin/dashboard");
-    } else if (userRole === "admin") {
-      navigate("/admin/dashboard");
-    } else {
-      navigate("/dashboard");
-    }
+    if (userRole === "superadmin") navigate("/superadmin/dashboard");
+    else if (userRole === "admin") navigate("/admin/dashboard");
+    else navigate("/dashboard");
   };
 
-  // Smooth scrolling
-  const scrollToFacilities = () =>
-    facilitiesRef.current?.scrollIntoView({ behavior: "smooth" });
-  const scrollToContact = () =>
-    contactRef.current?.scrollIntoView({ behavior: "smooth" });
-  const scrollToAbout = () =>
-    aboutRef.current?.scrollIntoView({ behavior: "smooth" });
-
-  const navHandlers = {
-    Home: () => window.scrollTo({ top: 0, behavior: "smooth" }),
-    Facilities: scrollToFacilities,
-    Contact: scrollToContact,
-    About: scrollToAbout,
-  };
+  const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: "smooth" });
 
   const navLabels = isLoggedIn
     ? ["Home", "Facilities", "About"]
     : ["Home", "Facilities", "Contact", "About"];
 
-  // Form functions
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
-  };
-
-  const handleCloseDialog = () => {
-    setDialogState((prevState) => ({ ...prevState, isOpen: false }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const validateForm = () => {
     let newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    if (!formData.email.trim()) newErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(formData.email))
       newErrors.email = "Enter a valid email";
-    }
     if (!formData.message.trim()) newErrors.message = "Message is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -135,249 +113,153 @@ const StartPage = () => {
     e.preventDefault();
     if (validateForm()) {
       try {
-        const response = await axios.post("http://localhost:5000/api/contact", {
-          name: formData.name,
-          email: formData.email,
+        const res = await axios.post("http://localhost:5000/api/contact", {
+          ...formData,
           subject: "Contact Form Submission",
-          message: formData.message,
         });
 
-        if (response.status === 201) {
+        if (res.status === 201) {
           setDialogState({
             isOpen: true,
             title: "Success",
-            message: "Your message has been sent successfully! 🎉",
+            message: "Message sent successfully! 🎉",
           });
           setFormData({ name: "", email: "", message: "" });
-        } else {
-          setDialogState({
-            isOpen: true,
-            title: "Error",
-            message: "Failed to send message. Please try again later. 😥",
-          });
         }
       } catch (err) {
-        console.error("Error sending message:", err);
         setDialogState({
           isOpen: true,
           title: "Error",
-          message: "Failed to send message. Please try again. 😥",
+          message: "Something went wrong. Please try again. 😥",
         });
       }
     }
   };
 
   return (
-    <Box
-      sx={{
-        position: "relative",
-        minHeight: "100vh",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#f5f5f5",
-      }}
-    >
+    <Box sx={{ bgcolor: "#f9f9f9" }}>
       {/* Navbar */}
       <AppBar
         position="fixed"
         sx={{
-          backgroundColor: "white",
+          background: "rgba(255,255,255,0.85)",
+          backdropFilter: "blur(10px)",
           color: "black",
-          boxShadow: "0px 2px 10px rgba(0,0,0,0.08)",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
         }}
       >
-        <Toolbar sx={{ minHeight: 58 }}>
-          <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
-            <img
-              src="https://i.ibb.co/d4xNZbb0/233-2338894-eap-photography-video-port-jefferson-station-ny-sb-logo-removebg-preview-1.png"
-              alt="Logo"
-              style={{ width: "45px", marginRight: "10px" }}
-            />
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: "bold", fontFamily: "unset" }}
-            >
-              Excel Analytics Platform
-            </Typography>
-          </Box>
-
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: "bold" }}>
+            Excel Analytics
+          </Typography>
           {navLabels.map((label, i) => (
             <Button
               key={i}
-              onClick={navHandlers[label]}
-              sx={{
-                fontWeight: "bold",
-                position: "relative",
-                "&::after": {
-                  content: '""',
-                  position: "absolute",
-                  width: 0,
-                  height: "2px",
-                  bottom: 0,
-                  left: 0,
-                  backgroundColor: "#1976d2",
-                  transition: "width 0.3s",
-                },
-                "&:hover::after": { width: "100%" },
+              sx={{ fontWeight: "bold", mx: 1 }}
+              onClick={() => {
+                if (label === "Home")
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                if (label === "Facilities") scrollTo(facilitiesRef);
+                if (label === "Contact") scrollTo(contactRef);
+                if (label === "About") scrollTo(aboutRef);
               }}
             >
               {label}
             </Button>
           ))}
-
           {isLoggedIn ? (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                ml: 2,
-                fontFamily: "unset",
-                fontWeight: "bold",
-              }}
-            >
-              <Button
-                variant="contained"
-                color="primary"
-                sx={{ fontWeight: "bold", mr: 2 }}
-                onClick={handleGoToDashboard}
-              >
-                Go to Dashboard
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Button variant="contained" onClick={handleGoToDashboard}>
+                Dashboard
               </Button>
-              <IconButton color="primary" sx={{ p: 0 }}>
-                <Avatar>
-                  <PersonIcon />
-                </Avatar>
-              </IconButton>
-            </Box>
+              <Avatar>
+                <PersonIcon />
+              </Avatar>
+            </Stack>
           ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              sx={{ fontWeight: "bold" }}
-              onClick={handleEnterClick}
-            >
-              Get Started / Login
+            <Button variant="contained" onClick={handleEnterClick}>
+              Get Started
             </Button>
           )}
         </Toolbar>
       </AppBar>
 
-      {/* Hero Section */}
+      {/* Hero */}
       <Box
         sx={{
-          position: "absolute",
-          top: 58,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.25)), url('https://static.vecteezy.com/system/resources/thumbnails/030/720/132/small/green-wall-texture-green-abstract-background-photo.jpg')`,
+          height: "100vh",
+          background:
+            "linear-gradient(to right, #1976d2 40%, #42a5f5 100%), url('https://img.freepik.com/free-photo/abstract-background-with-low-poly-design_1048-15104.jpg')",
           backgroundSize: "cover",
-          backgroundPosition: "center",
-          zIndex: 0,
+          backgroundBlendMode: "overlay",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+          color: "white",
+          px: 2,
         }}
-      />
-
-      <Container maxWidth="md" sx={{ zIndex: 1, textAlign: "center", mt: 14 }}>
-        <Stack spacing={3} alignItems="center">
-          <motion.img
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8 }}
-            src="https://i.ibb.co/d4xNZbb0/233-2338894-eap-photography-video-port-jefferson-station-ny-sb-logo-removebg-preview-1.png"
-            alt="Excel Analytics"
-            style={{ width: "140px" }}
-          />
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <Typography variant="h2" fontWeight="bold">
+            Unlock Insights from Excel
+          </Typography>
+          <Typography variant="h6" sx={{ mt: 2, mb: 4 }}>
+            Upload, Analyze, and Visualize your data in seconds.
+          </Typography>
+          <Button
+            variant="contained"
+            size="large"
+            sx={{ px: 5, py: 1.5, fontWeight: "bold", fontSize: "1.1rem" }}
+            onClick={isLoggedIn ? handleGoToDashboard : handleEnterClick}
           >
-            <Typography variant="h3" fontWeight="bold" color="white">
-              Welcome to Excel Analytics Platform
-            </Typography>
-            <Typography variant="body1" color="#f0f0f0" sx={{ mt: 1 }}>
-              Upload your Excel files, analyze data with powerful 2D/3D
-              visualizations, and gain insights — all in one place.
-            </Typography>
-          </motion.div>
-
-          {isLoggedIn ? (
-            <Button
-              variant="contained"
-              color="primary"
-              size="large"
-              onClick={handleGoToDashboard}
-              sx={{ mt: 2, px: 4, boxShadow: "0 4px 10px rgba(0,0,0,0.2)" }}
-            >
-              Go to Dashboard
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              size="large"
-              onClick={handleEnterClick}
-              sx={{ mt: 2, px: 4, boxShadow: "0 4px 10px rgba(0,0,0,0.2)" }}
-            >
-              Get Started
-            </Button>
-          )}
-        </Stack>
-      </Container>
+            {isLoggedIn ? "Go to Dashboard" : "Get Started"}
+          </Button>
+        </motion.div>
+      </Box>
 
       {/* Facilities */}
-      <Container
-        ref={facilitiesRef}
-        maxWidth="lg"
-        sx={{ mt: 8, zIndex: 1, mb: 6 }}
-      >
+      <Container ref={facilitiesRef} sx={{ py: 8 }}>
         <Typography
           variant="h4"
           fontWeight="bold"
-          align="center"
-          sx={{ mb: 4 }}
+          textAlign="center"
+          gutterBottom
         >
           Platform Facilities
         </Typography>
-        <Grid container spacing={4}>
-          {facilities.map((facility, index) => (
-            <Grid item xs={12} md={6} key={index}>
+        <Grid container spacing={4} sx={{ mt: 2 }}>
+          {facilities.map((f, i) => (
+            <Grid item xs={12} sm={6} md={4} key={i}>
               <motion.div
-                initial={{
-                  x: facility.direction === "left" ? -200 : 200,
-                  opacity: 0,
-                }}
-                whileInView={{ x: 0, opacity: 1 }}
-                transition={{ duration: 0.7, delay: index * 0.1 }}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: i * 0.1 }}
               >
                 <Paper
-                  elevation={4}
                   sx={{
-                    p: 3,
+                    p: 4,
                     borderRadius: 3,
-                    transition: "transform 0.3s, box-shadow 0.3s",
+                    textAlign: "center",
+                    height: "100%",
+                    transition: "0.3s",
                     "&:hover": {
-                      transform: "translateY(-5px)",
-                      boxShadow: "0px 10px 25px rgba(0,0,0,0.15)",
+                      transform: "translateY(-8px)",
+                      boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
                     },
                   }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <img
-                      src="https://i.ibb.co/d4xNZbb0/233-2338894-eap-photography-video-port-jefferson-station-ny-sb-logo-removebg-preview-1.png"
-                      alt="Facility"
-                      style={{ width: "45px", marginRight: "15px" }}
-                    />
-                    <Box>
-                      <Typography variant="h6" fontWeight="bold">
-                        {facility.title}
-                      </Typography>
-                      <Typography variant="body2">
-                        {facility.description}
-                      </Typography>
-                    </Box>
-                  </Box>
+                  {f.icon}
+                  <Typography variant="h6" fontWeight="bold" sx={{ mt: 2 }}>
+                    {f.title}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    {f.description}
+                  </Typography>
                 </Paper>
               </motion.div>
             </Grid>
@@ -385,105 +267,168 @@ const StartPage = () => {
         </Grid>
       </Container>
 
-      {/* Contact Section (only for guests) */}
+      {/* Contact */}
       {!isLoggedIn && (
-        <Container ref={contactRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <Paper
-              elevation={6}
-              sx={{ p: 4, borderRadius: 3, textAlign: "center" }}
-            >
-              <Typography variant="h4" fontWeight="bold" gutterBottom>
-                Quick Contact
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 3 }}>
-                Have questions? Send us a message and we'll get back to you.
-              </Typography>
-              <form onSubmit={handleSubmit}>
-                <Stack spacing={2}>
-                  <TextField
-                    label="Name"
-                    fullWidth
-                    name="name"
-                    value={formData.name}
-                    onChange={handleFormChange}
-                    error={!!errors.name}
-                    helperText={errors.name}
-                  />
-                  <TextField
-                    label="Email"
-                    fullWidth
-                    name="email"
-                    value={formData.email}
-                    onChange={handleFormChange}
-                    error={!!errors.email}
-                    helperText={errors.email}
-                  />
-                  <TextField
-                    label="Message"
-                    fullWidth
-                    name="message"
-                    multiline
-                    rows={4}
-                    value={formData.message}
-                    onChange={handleFormChange}
-                    error={!!errors.message}
-                    helperText={errors.message}
-                  />
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    sx={{ py: 1.5, fontWeight: "bold" }}
-                  >
-                    Send Message
-                  </Button>
-                </Stack>
-              </form>
-            </Paper>
-          </motion.div>
+        <Container ref={contactRef} sx={{ py: 8 }}>
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <motion.div
+                initial={{ opacity: 0, x: -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                <Paper sx={{ p: 4, borderRadius: 3 }}>
+                  <Typography variant="h5" fontWeight="bold" gutterBottom>
+                    Get in Touch
+                  </Typography>
+                  <form onSubmit={handleSubmit}>
+                    <Stack spacing={2}>
+                      <TextField
+                        label="Name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleFormChange}
+                        error={!!errors.name}
+                        helperText={errors.name}
+                      />
+                      <TextField
+                        label="Email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleFormChange}
+                        error={!!errors.email}
+                        helperText={errors.email}
+                      />
+                      <TextField
+                        label="Message"
+                        name="message"
+                        multiline
+                        rows={4}
+                        value={formData.message}
+                        onChange={handleFormChange}
+                        error={!!errors.message}
+                        helperText={errors.message}
+                      />
+                      <Button type="submit" variant="contained" size="large">
+                        Send Message
+                      </Button>
+                    </Stack>
+                  </form>
+                </Paper>
+              </motion.div>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <motion.img
+                src="https://img.freepik.com/free-vector/contact-us-concept-illustration_114360-1499.jpg"
+                alt="Contact illustration"
+                style={{ width: "100%", borderRadius: "16px" }}
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+              />
+            </Grid>
+          </Grid>
         </Container>
       )}
 
       {/* About */}
-      <Container ref={aboutRef} maxWidth="lg" sx={{ mb: 6, zIndex: 1 }}>
+      <Container ref={aboutRef} sx={{ py: 8 }}>
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <Paper
-            elevation={4}
-            sx={{ p: 4, borderRadius: 3, backgroundColor: "#fafafa" }}
-          >
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
+          <Paper sx={{ p: 4, borderRadius: 3 }}>
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              gutterBottom
+              align="center"
+            >
               About Us
             </Typography>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              Excel Analytics Platform is your all-in-one solution for turning
-              raw spreadsheet data into actionable insights.
+            <Typography
+              variant="body1"
+              align="center"
+              sx={{ mb: 4, maxWidth: "800px", mx: "auto" }}
+            >
+              At <strong>Excel Analytics</strong>, our mission is to simplify
+              data analysis for everyone. We help businesses and individuals
+              turn raw spreadsheets into meaningful insights through powerful
+              visualizations, smart automation, and intuitive design.
             </Typography>
-            <Typography variant="body1">
-              From dynamic charting to exportable reports, we’re committed to
-              helping you make data-driven decisions efficiently and
-              effectively.
-            </Typography>
+
+            {/* Values Grid */}
+            <Grid container spacing={4} sx={{ mt: 2 }}>
+              {[
+                {
+                  title: "🚀 Innovation",
+                  desc: "We continuously adopt modern technologies to deliver fast, scalable, and intelligent solutions.",
+                },
+                {
+                  title: "🤝 Collaboration",
+                  desc: "We work hand-in-hand with our users, ensuring a smooth journey from upload to insight.",
+                },
+                {
+                  title: "🔒 Reliability",
+                  desc: "Security and performance are at the heart of our platform, empowering users with peace of mind.",
+                },
+              ].map((item, i) => (
+                <Grid item xs={12} md={4} key={i}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: i * 0.2 }}
+                  >
+                    <Paper
+                      sx={{
+                        p: 3,
+                        borderRadius: 3,
+                        height: "100%",
+                        textAlign: "center",
+                        transition: "0.3s",
+                        "&:hover": {
+                          transform: "translateY(-6px)",
+                          boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+                        },
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        fontWeight="bold"
+                        gutterBottom
+                      >
+                        {item.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {item.desc}
+                      </Typography>
+                    </Paper>
+                  </motion.div>
+                </Grid>
+              ))}
+            </Grid>
           </Paper>
         </motion.div>
       </Container>
 
-      {/* Custom Dialog */}
-      <Dialog open={dialogState.isOpen} onClose={handleCloseDialog}>
+      {/* Dialog */}
+      <Dialog
+        open={dialogState.isOpen}
+        onClose={() =>
+          setDialogState({ ...dialogState, isOpen: false })
+        }
+      >
         <DialogTitle>{dialogState.title}</DialogTitle>
         <DialogContent>
           <Typography>{dialogState.message}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} color="primary" autoFocus>
+          <Button
+            onClick={() =>
+              setDialogState({ ...dialogState, isOpen: false })
+            }
+          >
             OK
           </Button>
         </DialogActions>

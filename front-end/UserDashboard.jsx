@@ -162,9 +162,7 @@ export default function App() {
   const [summarizeLoading, setSummarizeLoading] = useState(false);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [apiKey, setApiKey] = useState(
-    ""
-  );
+  const [apiKey, setApiKey] = useState("");
 
   const [avatarEditOpen, setAvatarEditOpen] = useState(false);
   const [avatarOptions] = useState([
@@ -175,7 +173,10 @@ export default function App() {
     { color: "#f44336", emoji: "🔥" },
     { color: "#009688", emoji: "🌐" },
   ]);
-  const [selectedAvatar, setSelectedAvatar] = useState({ color: "#4caf50", emoji: "😊" });
+  const [selectedAvatar, setSelectedAvatar] = useState({
+    color: "#4caf50",
+    emoji: "😊",
+  });
 
   // Refs for chart elements to capture
   const chart2DRef = useRef(null);
@@ -716,7 +717,13 @@ To get a complete AI-powered summary, please ensure your API key is valid and ha
               Data Analytics Dashboard
             </Typography>
             <IconButton onClick={handleAvatarClick} color="inherit">
-              <Avatar sx={{ bgcolor: selectedAvatar.color, color: "white", fontSize: "1.2rem" }}>
+              <Avatar
+                sx={{
+                  bgcolor: selectedAvatar.color,
+                  color: "white",
+                  fontSize: "1.2rem",
+                }}
+              >
                 {selectedAvatar.emoji}
               </Avatar>
             </IconButton>
@@ -1449,7 +1456,14 @@ To get a complete AI-powered summary, please ensure your API key is valid and ha
             <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
               Select your preferred avatar style:
             </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "center" }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 2,
+                justifyContent: "center",
+              }}
+            >
               {avatarOptions.map((avatar, index) => (
                 <Avatar
                   key={index}
@@ -1459,8 +1473,14 @@ To get a complete AI-powered summary, please ensure your API key is valid and ha
                     height: 60,
                     fontSize: "1.5rem",
                     cursor: "pointer",
-                    border: selectedAvatar.emoji === avatar.emoji ? "3px solid #4caf50" : "none",
-                    transform: selectedAvatar.emoji === avatar.emoji ? "scale(1.1)" : "scale(1)",
+                    border:
+                      selectedAvatar.emoji === avatar.emoji
+                        ? "3px solid #4caf50"
+                        : "none",
+                    transform:
+                      selectedAvatar.emoji === avatar.emoji
+                        ? "scale(1.1)"
+                        : "scale(1)",
                     transition: "all 0.2s ease",
                   }}
                   onClick={() => setSelectedAvatar(avatar)}
